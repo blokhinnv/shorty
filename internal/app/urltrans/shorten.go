@@ -1,4 +1,4 @@
-package shorten
+package urltrans
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/blokhinnv/shorty/internal/app/database"
+	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
 const (
@@ -31,25 +31,20 @@ func toShortenBase(urlId int64) string {
 }
 
 // Возвращает укороченный URL
-func GetShortURL(url string) (string, error) {
+func GetShortURL(s storage.Storage, url string) (string, error) {
 	// Если не URL, то укорачивать не будет
 	if !isUrl(url) {
 		return "", fmt.Errorf("%v is not an URL", string(url))
 	}
 
-	db, err := database.NewConnection()
-	if err != nil {
-		return "", err
-	}
-	has_result, urlId, err := database.GetIdByUrl(db, url)
-	if err != nil {
-		return "", err
-	}
+	urlId, err := s.GetIdByUrl(url)
 	// Если в базе такой URL есть, то берем его ID
 	// Если нет - добавляем строчку в БД
-	if !has_result {
+	if err == storage.ErrIdWasNotFound {
 		log.Printf("Creating new row for url=%s\n", url)
-		urlId = database.AddUrl(db, url)
+		urlId = s.AddUrl(url)
+	} else if err != nil {
+		return "", err
 	}
 	// Сокращаем
 	shortUrl := toShortenBase(urlId)
