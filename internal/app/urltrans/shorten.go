@@ -1,4 +1,4 @@
-package shorten
+package urltrans
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/blokhinnv/shorty/internal/app/database"
+	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
 const (
@@ -15,44 +15,39 @@ const (
 )
 
 // Проверяет, является ли строка URL
-func isUrl(s string) bool {
+func isURL(s string) bool {
 	_, err := url.ParseRequestURI(string(s))
 	return err == nil
 }
 
 // Переводит число в 38-ую СС
-func toShortenBase(urlId int64) string {
-	var shortUrl strings.Builder
-	for urlId > 0 {
-		shortUrl.WriteByte(letters[urlId%base])
-		urlId = urlId / base
+func toShortenBase(urlID int64) string {
+	var shortURL strings.Builder
+	for urlID > 0 {
+		shortURL.WriteByte(letters[urlID%base])
+		urlID = urlID / base
 	}
-	return shortUrl.String()
+	return shortURL.String()
 }
 
 // Возвращает укороченный URL
-func GetShortURL(url string) (string, error) {
+func GetShortURL(s storage.Storage, url string) (string, error) {
 	// Если не URL, то укорачивать не будет
-	if !isUrl(url) {
+	if !isURL(url) {
 		return "", fmt.Errorf("%v is not an URL", string(url))
 	}
 
-	db, err := database.NewConnection()
-	if err != nil {
-		return "", err
-	}
-	has_result, urlId, err := database.GetIdByUrl(db, url)
-	if err != nil {
-		return "", err
-	}
+	urlID, err := s.GetIDByURL(url)
 	// Если в базе такой URL есть, то берем его ID
 	// Если нет - добавляем строчку в БД
-	if !has_result {
+	if err == storage.ErrIDWasNotFound {
 		log.Printf("Creating new row for url=%s\n", url)
-		urlId = database.AddUrl(db, url)
+		urlID = s.AddURL(url)
+	} else if err != nil {
+		return "", err
 	}
 	// Сокращаем
-	shortUrl := toShortenBase(urlId)
+	shortURL := toShortenBase(urlID)
 
-	return shortUrl, nil
+	return shortURL, nil
 }
