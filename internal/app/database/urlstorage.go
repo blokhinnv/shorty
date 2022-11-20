@@ -85,14 +85,14 @@ func (s *URLStorage) GetIDByURL(url string) (string, error) {
 		return "", storage.ErrIDWasNotFound
 	}
 	// Забираем id из первой строки
-	var url_id string
-	if err := rows.Scan(&url_id); err != nil {
+	var urlID string
+	if err := rows.Scan(&urlID); err != nil {
 		return "", err
 	}
 	if err := rows.Err(); err != nil {
 		return "", err
 	}
-	return url_id, nil
+	return urlID, nil
 }
 
 // Возвращает количество строк в таблице
