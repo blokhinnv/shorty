@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	selectByIDSQL  = "SELECT url FROM Url WHERE url_id = ?"
-	selectByURLSQL = "SELECT url_id FROM Url WHERE url = ?"
-	insertSQL      = "INSERT INTO Url(url) VALUES (?)"
+	selectByIDSQL    = "SELECT url FROM Url WHERE url_id = ?"
+	selectByURLSQL   = "SELECT url_id FROM Url WHERE url = ?"
+	insertSQL        = "INSERT INTO Url(url, url_id) VALUES (?, ?)"
+	maxEncodingIDSQL = "SELECT COALESCE(MAX(encoding_id), 0) FROM Url "
 )
 
 type URLStorage struct {
@@ -33,12 +34,12 @@ func NewURLStorage() (*URLStorage, error) {
 }
 
 // Метод для добавления нового URL в БД
-func (s *URLStorage) AddURL(url string) int64 {
+func (s *URLStorage) AddURL(url, url_id string) int64 {
 	stmt, err := s.db.Prepare(insertSQL)
 	if err != nil {
 		panic("can't prepare insert query\n")
 	}
-	res, err := stmt.Exec(url)
+	res, err := stmt.Exec(url, url_id)
 	if err != nil {
 		panic("can't execute insert query\n")
 	}
@@ -47,9 +48,9 @@ func (s *URLStorage) AddURL(url string) int64 {
 }
 
 // Возвращает URL по его ID в БД
-func (s *URLStorage) GetURLByID(id int64) (string, error) {
+func (s *URLStorage) GetURLByID(url_id string) (string, error) {
 	// Получаем строки
-	rows, err := s.db.Query(selectByIDSQL, id)
+	rows, err := s.db.Query(selectByIDSQL, url_id)
 	if err != nil {
 		return "", err
 	}
@@ -72,9 +73,34 @@ func (s *URLStorage) GetURLByID(id int64) (string, error) {
 }
 
 // Возвращает ID URL по его строковому представлению
-func (s *URLStorage) GetIDByURL(url string) (int64, error) {
+func (s *URLStorage) GetIDByURL(url string) (string, error) {
 	// Получаем строки
 	rows, err := s.db.Query(selectByURLSQL, url)
+	if err != nil {
+		return "", err
+	}
+	// не забудем закрыть объект!
+	defer rows.Close()
+
+	// Next подготовит результат и вернет True, если строки есть
+	if !rows.Next() {
+		return "", storage.ErrIDWasNotFound
+	}
+	// Забираем id из первой строки
+	var url_id string
+	if err := rows.Scan(&url_id); err != nil {
+		return "", err
+	}
+	if err := rows.Err(); err != nil {
+		return "", err
+	}
+	return url_id, nil
+}
+
+// Возвращает количество строк в таблице
+func (s *URLStorage) GetFreeUID() (int, error) {
+	// Получаем строки
+	rows, err := s.db.Query(maxEncodingIDSQL)
 	if err != nil {
 		return -1, err
 	}
@@ -83,15 +109,15 @@ func (s *URLStorage) GetIDByURL(url string) (int64, error) {
 
 	// Next подготовит результат и вернет True, если строки есть
 	if !rows.Next() {
-		return -1, storage.ErrIDWasNotFound
+		return -1, err
 	}
 	// Забираем id из первой строки
-	var id int64
-	if err := rows.Scan(&id); err != nil {
+	var max int
+	if err := rows.Scan(&max); err != nil {
 		return -1, err
 	}
 	if err := rows.Err(); err != nil {
 		return -1, err
 	}
-	return id, nil
+	return max + 1, nil
 }

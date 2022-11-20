@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
@@ -45,19 +44,18 @@ func (h *RootHandler) ShortenHandlerFunc(w http.ResponseWriter, r *http.Request)
 // с кодом 307 и оригинальным URL в HTTP-заголовке Location.
 func (h *RootHandler) GetOriginalURLHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	// Проверяем, что URL имеет нужный вид
-	re := regexp.MustCompile(`^/\d+$`)
+	re := regexp.MustCompile(`^/\w+$`)
 	if !re.MatchString(r.URL.String()) {
 		http.Error(w, "Incorrent GET request", http.StatusBadRequest)
 		return
 	}
 	// Забираем ID URL из адресной строки
-	urlIDRaw := r.URL.String()[1:]
-	urlID, err := strconv.Atoi(urlIDRaw)
-	if urlIDRaw == "" || err != nil {
+	urlID := r.URL.String()[1:]
+	if urlID == "" {
 		http.Error(w, "Incorrent GET request", http.StatusBadRequest)
 		return
 	}
-	url, err := urltrans.GetOriginalURL(h.storage, int64(urlID))
+	url, err := urltrans.GetOriginalURL(h.storage, urlID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

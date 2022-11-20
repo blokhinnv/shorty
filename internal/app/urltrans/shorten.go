@@ -21,7 +21,7 @@ func isURL(s string) bool {
 }
 
 // Переводит число в 38-ую СС
-func toShortenBase(urlID int64) string {
+func toShortenBase(urlID int) string {
 	var shortURL strings.Builder
 	for urlID > 0 {
 		shortURL.WriteByte(letters[urlID%base])
@@ -42,12 +42,13 @@ func GetShortURL(s storage.Storage, url string) (string, error) {
 	// Если нет - добавляем строчку в БД
 	if err == storage.ErrIDWasNotFound {
 		log.Printf("Creating new row for url=%s\n", url)
-		urlID = s.AddURL(url)
+		encoding_id, _ := s.GetFreeUID()
+		urlID = toShortenBase(encoding_id)
+		s.AddURL(url, urlID)
 	} else if err != nil {
 		return "", err
 	}
 	// Сокращаем
-	shortURL := toShortenBase(urlID)
-
+	shortURL := fmt.Sprintf("http://localhost:8080/%v", urlID)
 	return shortURL, nil
 }

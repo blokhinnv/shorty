@@ -12,13 +12,11 @@ import (
 const createSQL = `
 DROP TABLE IF EXISTS Url;
 CREATE TABLE Url(
-	url_id INTEGER PRIMARY KEY AUTOINCREMENT,
-	url TEXT NOT NULL
+	encoding_id INTEGER PRIMARY KEY AUTOINCREMENT,
+	url VARCHAR NOT NULL,
+	url_id VARCHAR NOT NULL
 );
 `
-
-// SQL-запрос для сдвига первых url_id до 100000 (исключительно для демонстрационных целей)
-const shiftInitialIDSQL = `INSERT INTO sqlite_sequence(seq, name) VALUES (100000, 'Url')`
 
 // Путь к файлу БД
 const dbFile = "./db.sqlite3"
@@ -35,16 +33,8 @@ func init() {
 		log.Fatalf("can't access to DB %s: %v\n", dbFile, err)
 		os.Exit(1)
 	}
-	tx, _ := db.Begin()
-	if _, err = tx.Exec(createSQL); err != nil {
+	if _, err = db.Exec(createSQL); err != nil {
 		log.Fatalf("can't create table Url: %v\n", err)
-		tx.Rollback()
 		os.Exit(1)
 	}
-	if _, err = tx.Exec(shiftInitialIDSQL); err != nil {
-		log.Fatalf("can't setup table Url: %v\n", err)
-		tx.Rollback()
-		os.Exit(1)
-	}
-	tx.Commit()
 }
