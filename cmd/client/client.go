@@ -27,7 +27,7 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-	long = strings.TrimSuffix(long, "\n")
+	long = strings.TrimSpace(long)
 	// заполняем контейнер данными
 	data.Set("url", long)
 	// конструируем HTTP-клиент
@@ -36,7 +36,12 @@ func main() {
 	// запрос методом POST должен, кроме заголовков, содержать тело
 	// тело должно быть источником потокового чтения io.Reader
 	// в большинстве случаев отлично подходит bytes.Buffer
-	request, err := http.NewRequest(http.MethodPost, endpoint, bytes.NewBufferString(data.Encode()))
+	request, err := http.NewRequest(
+		http.MethodPost,
+		endpoint,
+		bytes.NewBufferString(long),
+		// bytes.NewBufferString(data.Encode()),
+	)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

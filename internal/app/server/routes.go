@@ -24,11 +24,18 @@ type RootHandler struct {
 func (h *RootHandler) ShortenHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	query, _ := io.ReadAll(r.Body)
 	queryParsed, err := url.ParseQuery(string(query))
-	longURL := strings.TrimSpace(queryParsed.Get("url"))
 	// Нужно учесть некорректные запросы и возвращать для них ответ с кодом 400.
-	if err != nil || longURL == "" {
-		http.Error(w, "Incorrent request body", http.StatusBadRequest)
+	if err != nil {
+		http.Error(
+			w,
+			fmt.Sprintf("Incorrent request body: %s", query),
+			http.StatusBadRequest,
+		)
 		return
+	}
+	longURL := strings.TrimSpace(queryParsed.Get("url"))
+	if longURL == "" {
+		longURL = string(query)
 	}
 	shortenURL, err := urltrans.GetShortURL(h.storage, longURL)
 	if err != nil {

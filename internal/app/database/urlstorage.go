@@ -34,23 +34,21 @@ func NewURLStorage() (*URLStorage, error) {
 }
 
 // Метод для добавления нового URL в БД
-func (s *URLStorage) AddURL(url, url_id string) int64 {
+func (s *URLStorage) AddURL(url, urlID string) {
 	stmt, err := s.db.Prepare(insertSQL)
 	if err != nil {
 		panic("can't prepare insert query\n")
 	}
-	res, err := stmt.Exec(url, url_id)
+	_, err = stmt.Exec(url, urlID)
 	if err != nil {
 		panic("can't execute insert query\n")
 	}
-	urlID, _ := res.LastInsertId()
-	return urlID
 }
 
 // Возвращает URL по его ID в БД
-func (s *URLStorage) GetURLByID(url_id string) (string, error) {
+func (s *URLStorage) GetURLByID(urlID string) (string, error) {
 	// Получаем строки
-	rows, err := s.db.Query(selectByIDSQL, url_id)
+	rows, err := s.db.Query(selectByIDSQL, urlID)
 	if err != nil {
 		return "", err
 	}

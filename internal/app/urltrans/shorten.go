@@ -16,7 +16,7 @@ const (
 
 // Проверяет, является ли строка URL
 func isURL(s string) bool {
-	_, err := url.ParseRequestURI(string(s))
+	_, err := url.ParseRequestURI(s)
 	return err == nil
 }
 
@@ -34,7 +34,7 @@ func toShortenBase(urlID int) string {
 func GetShortURL(s storage.Storage, url string) (string, error) {
 	// Если не URL, то укорачивать не будет
 	if !isURL(url) {
-		return "", fmt.Errorf("%v is not an URL", string(url))
+		return "", fmt.Errorf("not an URL: %s ", url)
 	}
 
 	urlID, err := s.GetIDByURL(url)
@@ -42,8 +42,8 @@ func GetShortURL(s storage.Storage, url string) (string, error) {
 	// Если нет - добавляем строчку в БД
 	if err == storage.ErrIDWasNotFound {
 		log.Printf("Creating new row for url=%s\n", url)
-		encoding_id, _ := s.GetFreeUID()
-		urlID = toShortenBase(encoding_id)
+		encodingID, _ := s.GetFreeUID()
+		urlID = toShortenBase(encodingID)
 		s.AddURL(url, urlID)
 	} else if err != nil {
 		return "", err
