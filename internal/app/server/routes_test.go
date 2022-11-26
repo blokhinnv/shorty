@@ -2,7 +2,7 @@ package server
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -94,7 +94,7 @@ func TestRootHandler_ShortenHandlerFunc(t *testing.T) {
 			assert.Equal(t, tt.want.statusCode, res.StatusCode)
 			assert.Equal(t, tt.want.contentType, res.Header.Get("Content-Type"))
 
-			resShortURL, err := ioutil.ReadAll(res.Body)
+			resShortURL, err := io.ReadAll(res.Body)
 			require.NoError(t, err)
 			defer res.Body.Close()
 			assert.Equal(t, tt.want.result, strings.TrimSpace(string(resShortURL)))
@@ -188,7 +188,7 @@ func TestRootHandler_GetOriginalURLHandlerFunc(t *testing.T) {
 			assert.Equal(t, tt.want.contentType, res.Header.Get("Content-Type"))
 			assert.Equal(t, tt.want.location, res.Header.Get("Location"))
 
-			resLongURL, err := ioutil.ReadAll(res.Body)
+			resLongURL, err := io.ReadAll(res.Body)
 			require.NoError(t, err)
 			defer res.Body.Close()
 			assert.Equal(t, tt.want.result, strings.TrimSpace(string(resLongURL)))
