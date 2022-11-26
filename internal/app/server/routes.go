@@ -42,6 +42,7 @@ func (h *RootHandler) ShortenHandlerFunc(w http.ResponseWriter, r *http.Request)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte(shortenURL))
 }
@@ -68,6 +69,7 @@ func (h *RootHandler) GetOriginalURLHandlerFunc(w http.ResponseWriter, r *http.R
 		return
 	}
 	w.Header().Set("Location", url)
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusTemporaryRedirect)
 	w.Write([]byte(fmt.Sprintf("Original URL was %v\n", url)))
 }
