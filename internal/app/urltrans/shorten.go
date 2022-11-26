@@ -52,3 +52,10 @@ func GetShortURL(s storage.Storage, url string) (string, error) {
 	shortURL := fmt.Sprintf("http://localhost:8080/%v", urlID)
 	return shortURL, nil
 }
+
+// Извлекает идентификатор сокращенного URL из полного пути
+func GetShortURLID(shortURL string) string {
+	urlParts := strings.Split(shortURL, "/")
+	urlID := urlParts[len(urlParts)-1]
+	return urlID
+}

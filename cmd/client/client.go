@@ -10,24 +10,14 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/go-resty/resty/v2"
 )
 
-func main() {
-	// адрес сервиса (как его писать, расскажем в следующем уроке)
-	endpoint := "http://localhost:8080/"
+// Вариант с "ручным" созданием клиента, запроса и т.д.
+func sendHTTPRequest(endpoint, long string) {
 	// контейнер данных для запроса
 	data := url.Values{}
-	// приглашение в консоли
-	fmt.Println("Введите длинный URL")
-	// открываем потоковое чтение из консоли
-	reader := bufio.NewReader(os.Stdin)
-	// читаем строку из консоли
-	long, err := reader.ReadString('\n')
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	long = strings.TrimSpace(long)
 	// заполняем контейнер данными
 	data.Set("url", long)
 	// конструируем HTTP-клиент
@@ -66,4 +56,38 @@ func main() {
 	}
 	// и печатаем его
 	fmt.Println(string(body))
+}
+
+// Вариант с отправкой запроса при помощи resty
+func sendRestyRequest(endpoint, long string) {
+	client := resty.New()
+	resp, err := client.R().
+		SetHeader("Content-Type", "application/x-www-form-urlencoded").
+		SetHeader("Content-Length", strconv.Itoa(len(long))).
+		SetBody(long).
+		Post(endpoint)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Println(string(resp.Body()))
+}
+
+// Точка входа клиента
+func main() {
+	// адрес сервиса (как его писать, расскажем в следующем уроке)
+	endpoint := "http://localhost:8080/"
+	// приглашение в консоли
+	fmt.Println("Введите длинный URL")
+	// открываем потоковое чтение из консоли
+	reader := bufio.NewReader(os.Stdin)
+	// читаем строку из консоли
+	long, err := reader.ReadString('\n')
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	long = strings.TrimSpace(long)
+	// sendHTTPRequest(endpoint, long)
+	sendRestyRequest(endpoint, long)
 }

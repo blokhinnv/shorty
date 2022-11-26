@@ -4,18 +4,10 @@ package server
 import (
 	"log"
 	"net/http"
-	"os"
-
-	db "github.com/blokhinnv/shorty/internal/app/database"
 )
 
 func RunServer() {
-	storage, err := db.NewURLStorage()
-	if err != nil {
-		log.Fatal("Can't connect to the URL storage")
-		os.Exit(1)
-	}
-	http.Handle("/", &RootHandler{storage})
+	r := NewRouter()
 	// Сервер должен быть доступен по адресу: http://localhost:8080
-	http.ListenAndServe(":8080", nil)
+	log.Fatal(http.ListenAndServe(":8080", r))
 }

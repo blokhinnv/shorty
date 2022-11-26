@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,19 +10,22 @@ import (
 	"strings"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
+	storage "github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/blokhinnv/shorty/internal/app/urltrans"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
-type RootHandler struct {
-	storage *db.URLStorage
-}
+type ContextValueKey string
+
+const storageKey = ContextValueKey("storage")
 
 // Сервер должен предоставлять два эндпоинта: POST / и GET /{id}.
 
 // Эндпоинт POST / принимает в теле запроса строку URL
 // для сокращения и возвращает ответ с кодом 201 и
 // сокращённым URL в виде текстовой строки в теле.
-func (h *RootHandler) ShortenHandlerFunc(w http.ResponseWriter, r *http.Request) {
+func ShortenHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	query, _ := io.ReadAll(r.Body)
 	queryParsed, err := url.ParseQuery(string(query))
 	// Нужно учесть некорректные запросы и возвращать для них ответ с кодом 400.
@@ -37,7 +41,8 @@ func (h *RootHandler) ShortenHandlerFunc(w http.ResponseWriter, r *http.Request)
 	if longURL == "" {
 		longURL = string(query)
 	}
-	shortenURL, err := urltrans.GetShortURL(h.storage, longURL)
+	s := r.Context().Value(storageKey).(storage.Storage)
+	shortenURL, err := urltrans.GetShortURL(s, longURL)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -50,7 +55,7 @@ func (h *RootHandler) ShortenHandlerFunc(w http.ResponseWriter, r *http.Request)
 // Эндпоинт GET /{id} принимает в качестве URL-параметра идентификатор
 // сокращённого URL и возвращает ответ
 // с кодом 307 и оригинальным URL в HTTP-заголовке Location.
-func (h *RootHandler) GetOriginalURLHandlerFunc(w http.ResponseWriter, r *http.Request) {
+func GetOriginalURLHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	// Проверяем, что URL имеет нужный вид
 	re := regexp.MustCompile(`^/\w+$`)
 	if !re.MatchString(r.URL.String()) {
@@ -63,7 +68,8 @@ func (h *RootHandler) GetOriginalURLHandlerFunc(w http.ResponseWriter, r *http.R
 		http.Error(w, "Incorrent GET request", http.StatusBadRequest)
 		return
 	}
-	url, err := urltrans.GetOriginalURL(h.storage, urlID)
+	s := r.Context().Value(storageKey).(storage.Storage)
+	url, err := urltrans.GetOriginalURL(s, urlID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -74,13 +80,26 @@ func (h *RootHandler) GetOriginalURLHandlerFunc(w http.ResponseWriter, r *http.R
 	w.Write([]byte(fmt.Sprintf("Original URL was %v\n", url)))
 }
 
-func (h *RootHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		h.ShortenHandlerFunc(w, r)
-	} else if r.Method == http.MethodGet {
-		h.GetOriginalURLHandlerFunc(w, r)
-	} else {
-		http.Error(w, "Only GET or POST requests are allowed!", http.StatusMethodNotAllowed)
-		return
-	}
+// Middleware для добавления объекта-хранилища в контекст
+func StorageCtx(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		storage, err := db.NewURLStorage()
+		if err != nil {
+			http.Error(w, "Can't connect to the URL storage", http.StatusNoContent)
+		}
+		ctx := context.WithValue(r.Context(), storageKey, storage)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// Конструктор нового маршрутизатора
+func NewRouter() chi.Router {
+	r := chi.NewRouter()
+	r.Use(middleware.Logger)
+	r.Route("/", func(r chi.Router) {
+		r.Use(StorageCtx)
+		r.Get("/{idURL}", GetOriginalURLHandlerFunc)
+		r.Post("/", ShortenHandlerFunc)
+	})
+	return r
 }

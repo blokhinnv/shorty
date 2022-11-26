@@ -1,22 +1,48 @@
 package server
 
 import (
+	"errors"
 	"fmt"
-	"io"
+	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
-	storage "github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/blokhinnv/shorty/internal/app/urltrans"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+// Конструктор нового сервера
+// Нужен, чтобы убедиться, что сервер запустится на нужном нам порте
+func NewServerWithPort(r chi.Router, port string) *httptest.Server {
+	l, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", port))
+	if err != nil {
+		log.Fatal(err)
+	}
+	ts := httptest.NewUnstartedServer(r)
+	ts.Listener.Close()
+	ts.Listener = l
+	ts.Start()
+	return ts
+}
+
+// Настройки для блокирования перенаправления
+var errRedirectBlocked = errors.New("HTTP redirect blocked")
+var NoRedirectPolicy = resty.RedirectPolicyFunc(func(req *http.Request, via []*http.Request) error {
+	return errRedirectBlocked
+})
+
 // Тесты для POST-запроса
 func TestRootHandler_ShortenHandlerFunc(t *testing.T) {
+	r := NewRouter()
+	ts := NewServerWithPort(r, "8080")
+	defer ts.Close()
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
 	s, err := db.NewURLStorage()
@@ -24,7 +50,6 @@ func TestRootHandler_ShortenHandlerFunc(t *testing.T) {
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
 	shortURL, err := urltrans.GetShortURL(s, longURL)
 	require.NoError(t, err)
-	s.AddURL(longURL, shortURL)
 
 	type want struct {
 		statusCode  int
@@ -79,24 +104,19 @@ func TestRootHandler_ShortenHandlerFunc(t *testing.T) {
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(
-				http.MethodPost,
-				"http://localhost:8080/",
-				strings.NewReader(tt.longURL),
-			)
-			w := httptest.NewRecorder()
-			h := &RootHandler{s}
-			h.ServeHTTP(w, request)
-			res := w.Result()
+			client := resty.New()
+			res, err := client.R().
+				SetBody(strings.NewReader(tt.longURL)).
+				Post(ts.URL)
 
-			assert.Equal(t, tt.want.statusCode, res.StatusCode)
-			assert.Equal(t, tt.want.contentType, res.Header.Get("Content-Type"))
+			assert.NoError(t, err)
+			assert.Equal(t, tt.want.statusCode, res.StatusCode())
+			assert.Equal(t, tt.want.contentType, res.Header().Get("Content-Type"))
 
-			resShortURL, err := io.ReadAll(res.Body)
-			require.NoError(t, err)
-			defer res.Body.Close()
+			resShortURL := res.Body()
 			assert.Equal(t, tt.want.result, strings.TrimSpace(string(resShortURL)))
 		})
 	}
@@ -104,6 +124,10 @@ func TestRootHandler_ShortenHandlerFunc(t *testing.T) {
 
 // Тесты для GET-запроса
 func TestRootHandler_GetOriginalURLHandlerFunc(t *testing.T) {
+	r := NewRouter()
+	ts := NewServerWithPort(r, "8080")
+	defer ts.Close()
+
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
 	s, err := db.NewURLStorage()
@@ -111,13 +135,9 @@ func TestRootHandler_GetOriginalURLHandlerFunc(t *testing.T) {
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
 	shortURL, err := urltrans.GetShortURL(s, longURL)
 	require.NoError(t, err)
-	s.AddURL(longURL, shortURL)
-	shortURLQuery := strings.Replace(shortURL, "http://localhost:8080/", "", -1)
-
 	type want struct {
 		statusCode  int
 		location    string
-		result      string
 		contentType string
 	}
 	tests := []struct {
@@ -128,33 +148,20 @@ func TestRootHandler_GetOriginalURLHandlerFunc(t *testing.T) {
 		{
 			// получаем оригинальный URL по сокращенному
 			name:     "test_ok",
-			shortURL: shortURLQuery,
+			shortURL: shortURL,
 			want: want{
 				statusCode:  http.StatusTemporaryRedirect,
 				location:    longURL,
-				result:      fmt.Sprintf("Original URL was %v", longURL),
 				contentType: "text/plain; charset=utf-8",
 			},
 		},
 		{
 			// некорректный ID сокращенного URL
 			name:     "test_bad_url",
-			shortURL: "[url]",
+			shortURL: "http://localhost:8080/[url]",
 			want: want{
 				statusCode:  http.StatusBadRequest,
 				location:    "",
-				result:      "Incorrent GET request",
-				contentType: "text/plain; charset=utf-8",
-			},
-		},
-		{
-			// Пустой запрос
-			name:     "test_empty_request",
-			shortURL: "",
-			want: want{
-				statusCode:  http.StatusBadRequest,
-				location:    "",
-				result:      "Incorrent GET request",
 				contentType: "text/plain; charset=utf-8",
 			},
 		},
@@ -162,36 +169,28 @@ func TestRootHandler_GetOriginalURLHandlerFunc(t *testing.T) {
 			// Пытаемся вернуть оригинальный URL, который
 			// никогда не видели
 			name:     "test_not_found_url",
-			shortURL: "qwerty",
+			shortURL: "http://localhost:8080/qwerty",
 			want: want{
 				statusCode:  http.StatusBadRequest,
 				location:    "",
-				result:      storage.ErrURLWasNotFound.Error(),
 				contentType: "text/plain; charset=utf-8",
 			},
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			request := httptest.NewRequest(
-				http.MethodGet,
-				"/"+tt.shortURL,
-				nil,
-			)
-			fmt.Println(shortURL)
-			w := httptest.NewRecorder()
-			h := &RootHandler{s}
-			h.ServeHTTP(w, request)
-			res := w.Result()
-
-			assert.Equal(t, tt.want.statusCode, res.StatusCode)
-			assert.Equal(t, tt.want.contentType, res.Header.Get("Content-Type"))
-			assert.Equal(t, tt.want.location, res.Header.Get("Location"))
-
-			resLongURL, err := io.ReadAll(res.Body)
-			require.NoError(t, err)
-			defer res.Body.Close()
-			assert.Equal(t, tt.want.result, strings.TrimSpace(string(resLongURL)))
+			client := resty.New().SetRedirectPolicy(NoRedirectPolicy)
+			// Вариант, если порт заранее неизвестен:
+			// shortURLID := urltrans.GetShortURLID(tt.shortURL)
+			// res, err := client.R().Get(fmt.Sprintf("%v/%v", ts.URL, shortURLID))
+			res, err := client.R().Get(tt.shortURL)
+			if err != nil {
+				assert.ErrorIs(t, err, errRedirectBlocked)
+			}
+			assert.Equal(t, tt.want.statusCode, res.StatusCode())
+			assert.Equal(t, tt.want.contentType, res.Header().Get("Content-Type"))
+			assert.Equal(t, tt.want.location, res.Header().Get("Location"))
 		})
 	}
 }
