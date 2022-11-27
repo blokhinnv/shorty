@@ -18,11 +18,8 @@ CREATE TABLE Url(
 );
 `
 
-// Путь к файлу БД
-const dbFile = "./db.sqlite3"
-
 // При инициализации создадим БД, если ее не существует
-func init() {
+func InitDB(dbFile string) {
 	// Проверка существования БД
 	if _, err := os.Stat(dbFile); err == nil {
 		return

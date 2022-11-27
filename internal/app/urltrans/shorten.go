@@ -31,7 +31,7 @@ func toShortenBase(urlID int) string {
 }
 
 // Возвращает укороченный URL
-func GetShortURL(s storage.Storage, url string) (string, error) {
+func GetShortURL(s storage.Storage, url, host string) (string, error) {
 	// Если не URL, то укорачивать не будет
 	if !isURL(url) {
 		return "", fmt.Errorf("not an URL: %s ", url)
@@ -49,7 +49,7 @@ func GetShortURL(s storage.Storage, url string) (string, error) {
 		return "", err
 	}
 	// Сокращаем
-	shortURL := fmt.Sprintf("http://localhost:8080/%v", urlID)
+	shortURL := fmt.Sprintf("http://%v/%v", host, urlID)
 	return shortURL, nil
 }
 

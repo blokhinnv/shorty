@@ -18,6 +18,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const port = "8080"
+
+var host = fmt.Sprintf("localhost:%v", port)
+
 // Конструктор нового сервера
 // Нужен, чтобы убедиться, что сервер запустится на нужном нам порте
 func NewServerWithPort(r chi.Router, port string) *httptest.Server {
@@ -38,17 +42,25 @@ var NoRedirectPolicy = resty.RedirectPolicyFunc(func(req *http.Request, via []*h
 	return errRedirectBlocked
 })
 
+func IPToLocalhost(addr string) string {
+	return strings.Replace(addr, "127.0.0.1", "localhost", -1)
+}
+
 // Тесты для POST-запроса
 func TestRootHandler_ShortenHandlerFunc(t *testing.T) {
-	r := NewRouter()
-	ts := NewServerWithPort(r, "8080")
+	// Если стартануть сервер cmd/shortener/main,
+	// то будет использоваться его роутинг даже в тестах :о
+	dbPath := "./db_test.sqlite3"
+	db.InitDB(dbPath)
+	r := NewRouter(dbPath)
+	ts := NewServerWithPort(r, port)
 	defer ts.Close()
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
-	s, err := db.NewURLStorage()
+	s, err := db.NewURLStorage(dbPath)
 	require.NoError(t, err)
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
-	shortURL, err := urltrans.GetShortURL(s, longURL)
+	shortURL, err := urltrans.GetShortURL(s, longURL, host)
 	require.NoError(t, err)
 
 	type want struct {
@@ -117,23 +129,25 @@ func TestRootHandler_ShortenHandlerFunc(t *testing.T) {
 			assert.Equal(t, tt.want.contentType, res.Header().Get("Content-Type"))
 
 			resShortURL := res.Body()
-			assert.Equal(t, tt.want.result, strings.TrimSpace(string(resShortURL)))
+			assert.Equal(t, tt.want.result, IPToLocalhost(strings.TrimSpace(string(resShortURL))))
 		})
 	}
 }
 
 // Тесты для GET-запроса
 func TestRootHandler_GetOriginalURLHandlerFunc(t *testing.T) {
-	r := NewRouter()
-	ts := NewServerWithPort(r, "8080")
+	dbPath := "./db_test.sqlite3"
+	db.InitDB(dbPath)
+	r := NewRouter(dbPath)
+	ts := NewServerWithPort(r, port)
 	defer ts.Close()
 
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
-	s, err := db.NewURLStorage()
+	s, err := db.NewURLStorage(dbPath)
 	require.NoError(t, err)
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
-	shortURL, err := urltrans.GetShortURL(s, longURL)
+	shortURL, err := urltrans.GetShortURL(s, longURL, host)
 	require.NoError(t, err)
 	type want struct {
 		statusCode  int
@@ -158,7 +172,7 @@ func TestRootHandler_GetOriginalURLHandlerFunc(t *testing.T) {
 		{
 			// некорректный ID сокращенного URL
 			name:     "test_bad_url",
-			shortURL: "http://localhost:8080/[url]",
+			shortURL: fmt.Sprintf("http://%v/[url]", host),
 			want: want{
 				statusCode:  http.StatusBadRequest,
 				location:    "",
@@ -169,7 +183,7 @@ func TestRootHandler_GetOriginalURLHandlerFunc(t *testing.T) {
 			// Пытаемся вернуть оригинальный URL, который
 			// никогда не видели
 			name:     "test_not_found_url",
-			shortURL: "http://localhost:8080/qwerty",
+			shortURL: fmt.Sprintf("http://%v/qwerty", host),
 			want: want{
 				statusCode:  http.StatusBadRequest,
 				location:    "",

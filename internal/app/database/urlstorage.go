@@ -24,8 +24,12 @@ type URLStorage struct {
 	db *sql.DB
 }
 
+func (s *URLStorage) Close() {
+	s.db.Close()
+}
+
 // Конструктор нового хранилища URL
-func NewURLStorage() (*URLStorage, error) {
+func NewURLStorage(dbFile string) (*URLStorage, error) {
 	db, err := sql.Open("sqlite3", dbFile)
 	if err != nil {
 		return nil, fmt.Errorf("can't access to DB %s: %v", dbFile, err)

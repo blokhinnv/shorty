@@ -42,7 +42,7 @@ func ShortenHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		longURL = string(query)
 	}
 	s := r.Context().Value(storageKey).(storage.Storage)
-	shortenURL, err := urltrans.GetShortURL(s, longURL)
+	shortenURL, err := urltrans.GetShortURL(s, longURL, r.Host)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -81,23 +81,28 @@ func GetOriginalURLHandlerFunc(w http.ResponseWriter, r *http.Request) {
 }
 
 // Middleware для добавления объекта-хранилища в контекст
-func StorageCtx(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		storage, err := db.NewURLStorage()
-		if err != nil {
-			http.Error(w, "Can't connect to the URL storage", http.StatusNoContent)
-		}
-		ctx := context.WithValue(r.Context(), storageKey, storage)
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+// Вряд ли это очень хорошая идея - создавать подключение вот так при каждом
+// запросе. С другой стороны, очень хотелось поупражняться с Middleware + Context
+func StorageCtx(dbPath string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			storage, err := db.NewURLStorage(dbPath)
+			if err != nil {
+				http.Error(w, "Can't connect to the URL storage", http.StatusNoContent)
+			}
+			defer storage.Close()
+			ctx := context.WithValue(r.Context(), storageKey, storage)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	}
 }
 
 // Конструктор нового маршрутизатора
-func NewRouter() chi.Router {
+func NewRouter(dbPath string) chi.Router {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Route("/", func(r chi.Router) {
-		r.Use(StorageCtx)
+		r.Use(StorageCtx(dbPath))
 		r.Get("/{idURL}", GetOriginalURLHandlerFunc)
 		r.Post("/", ShortenHandlerFunc)
 	})
