@@ -5,6 +5,11 @@ go 1.19
 require github.com/mattn/go-sqlite3 v1.14.16
 
 require (
+	github.com/go-redis/redis v6.15.9+incompatible // indirect
+	github.com/joho/godotenv v1.4.0 // indirect
+)
+
+require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-resty/resty/v2 v2.7.0

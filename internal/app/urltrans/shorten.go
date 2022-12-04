@@ -23,6 +23,9 @@ func isURL(s string) bool {
 // Переводит число в 38-ую СС
 func toShortenBase(urlID int) string {
 	var shortURL strings.Builder
+	if urlID == 0 {
+		return string(letters[0])
+	}
 	for urlID > 0 {
 		shortURL.WriteByte(letters[urlID%base])
 		urlID = urlID / base

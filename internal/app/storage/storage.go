@@ -1,7 +1,9 @@
 // Пакет с интерфейсом хранилища данных
 package storage
 
-import "errors"
+import (
+	"errors"
+)
 
 // Интерфейс для хранилища
 type Storage interface {
@@ -13,6 +15,8 @@ type Storage interface {
 	GetIDByURL(url string) (string, error)
 	// Возвращает свободный числовой ID для кодировки URL
 	GetFreeUID() (int, error)
+	// Закрывает хранилище
+	Close()
 }
 
 var (
