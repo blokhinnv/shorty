@@ -14,6 +14,7 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/urltrans"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-resty/resty/v2"
+	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -47,18 +48,17 @@ func IPToLocalhost(addr string) string {
 }
 
 // Тесты для POST-запроса
-func TestRootHandler_ShortenHandlerFunc(t *testing.T) {
+func ShortenTestLogic(t *testing.T) {
 	// Если стартануть сервер cmd/shortener/main,
 	// то будет использоваться его роутинг даже в тестах :о
-	dbPath := "./db_test.sqlite3"
-	db.InitDB(dbPath)
-	r := NewRouter(dbPath)
+	s := db.NewDBStorage()
+	defer s.Close()
+	r := NewRouter(s)
+
 	ts := NewServerWithPort(r, port)
 	defer ts.Close()
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
-	s, err := db.NewURLStorage(dbPath)
-	require.NoError(t, err)
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
 	shortURL, err := urltrans.GetShortURL(s, longURL, host)
 	require.NoError(t, err)
@@ -134,18 +134,27 @@ func TestRootHandler_ShortenHandlerFunc(t *testing.T) {
 	}
 }
 
+func Test_Shorten_SQLite(t *testing.T) {
+	godotenv.Load("test_sqlite.env")
+	ShortenTestLogic(t)
+}
+
+func Test_Shorten_Redis(t *testing.T) {
+	godotenv.Load("test_redis.env")
+	ShortenTestLogic(t)
+}
+
 // Тесты для GET-запроса
-func TestRootHandler_GetOriginalURLHandlerFunc(t *testing.T) {
-	dbPath := "./db_test.sqlite3"
-	db.InitDB(dbPath)
-	r := NewRouter(dbPath)
+func LengthenTestLogic(t *testing.T) {
+	godotenv.Load("test.env")
+	s := db.NewDBStorage()
+	defer s.Close()
+	r := NewRouter(s)
 	ts := NewServerWithPort(r, port)
 	defer ts.Close()
 
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
-	s, err := db.NewURLStorage(dbPath)
-	require.NoError(t, err)
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
 	shortURL, err := urltrans.GetShortURL(s, longURL, host)
 	require.NoError(t, err)
@@ -207,4 +216,14 @@ func TestRootHandler_GetOriginalURLHandlerFunc(t *testing.T) {
 			assert.Equal(t, tt.want.location, res.Header().Get("Location"))
 		})
 	}
+}
+
+func Test_Lengthen_SQLite(t *testing.T) {
+	godotenv.Load("test_sqlite.env")
+	LengthenTestLogic(t)
+}
+
+func Test_Lengthen_Redis(t *testing.T) {
+	godotenv.Load("test_redis.env")
+	LengthenTestLogic(t)
 }

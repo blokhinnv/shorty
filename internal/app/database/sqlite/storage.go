@@ -20,25 +20,22 @@ const (
 	maxEncodingIDSQL = "SELECT COALESCE(MAX(encoding_id), 0) FROM Url "
 )
 
-type URLStorage struct {
+type SQLiteStorage struct {
 	db *sql.DB
 }
 
-func (s *URLStorage) Close() {
-	s.db.Close()
-}
-
 // Конструктор нового хранилища URL
-func NewURLStorage(dbFile string) (*URLStorage, error) {
-	db, err := sql.Open("sqlite3", dbFile)
+func NewSQLiteStorage(conf SQLiteConfig) (*SQLiteStorage, error) {
+	InitDB(conf.DBPath)
+	db, err := sql.Open("sqlite3", conf.DBPath)
 	if err != nil {
-		return nil, fmt.Errorf("can't access to DB %s: %v", dbFile, err)
+		return nil, fmt.Errorf("can't access to DB %s: %v", conf.DBPath, err)
 	}
-	return &URLStorage{db}, nil
+	return &SQLiteStorage{db}, nil
 }
 
 // Метод для добавления нового URL в БД
-func (s *URLStorage) AddURL(url, urlID string) {
+func (s *SQLiteStorage) AddURL(url, urlID string) {
 	stmt, err := s.db.Prepare(insertSQL)
 	if err != nil {
 		panic("can't prepare insert query\n")
@@ -50,7 +47,7 @@ func (s *URLStorage) AddURL(url, urlID string) {
 }
 
 // Возвращает URL по его ID в БД
-func (s *URLStorage) GetURLByID(urlID string) (string, error) {
+func (s *SQLiteStorage) GetURLByID(urlID string) (string, error) {
 	// Получаем строки
 	rows, err := s.db.Query(selectByIDSQL, urlID)
 	if err != nil {
@@ -75,7 +72,7 @@ func (s *URLStorage) GetURLByID(urlID string) (string, error) {
 }
 
 // Возвращает ID URL по его строковому представлению
-func (s *URLStorage) GetIDByURL(url string) (string, error) {
+func (s *SQLiteStorage) GetIDByURL(url string) (string, error) {
 	// Получаем строки
 	rows, err := s.db.Query(selectByURLSQL, url)
 	if err != nil {
@@ -100,7 +97,7 @@ func (s *URLStorage) GetIDByURL(url string) (string, error) {
 }
 
 // Возвращает количество строк в таблице
-func (s *URLStorage) GetFreeUID() (int, error) {
+func (s *SQLiteStorage) GetFreeUID() (int, error) {
 	// Получаем строки
 	rows, err := s.db.Query(maxEncodingIDSQL)
 	if err != nil {
@@ -122,4 +119,9 @@ func (s *URLStorage) GetFreeUID() (int, error) {
 		return -1, err
 	}
 	return max + 1, nil
+}
+
+// Закрывает соединение с SQLite
+func (s *SQLiteStorage) Close() {
+	s.db.Close()
 }

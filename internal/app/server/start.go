@@ -5,13 +5,14 @@ import (
 	"log"
 	"net/http"
 
-	db "github.com/blokhinnv/shorty/internal/app/database"
+	"github.com/blokhinnv/shorty/internal/app/database"
 )
 
+// Создает хранилище и запускает сервер
 func RunServer() {
-	dbPath := "./db.sqlite3"
-	db.InitDB(dbPath)
-	r := NewRouter(dbPath)
+	s := database.NewDBStorage()
+	defer s.Close()
+	r := NewRouter(s)
 	// Сервер должен быть доступен по адресу: http://localhost:8080
 	log.Fatal(http.ListenAndServe(":8080", r))
 }
