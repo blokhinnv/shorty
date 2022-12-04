@@ -1,9 +1,6 @@
 package database
 
 import (
-	"fmt"
-	"os"
-	"strings"
 	"time"
 
 	"github.com/blokhinnv/shorty/internal/app/env"
@@ -18,32 +15,24 @@ type RedisConfig = struct {
 	KeyExpirationHours time.Duration
 }
 
+const (
+	DEFAULT_ADDR      = "localhost:6379"
+	DEFAULT_PASSWORD  = ""
+	DEFAULT_LTS_DB    = 1
+	DEFAULT_STL_DB    = 2
+	DEFAULT_META_DB   = 3
+	DEFAULT_HOURS_TTL = 1
+)
+
 // Конструктор конфига Redis на основе переменных окружения
 func GetRedisConfig() RedisConfig {
-	missing := make([]string, 0)
-	requiredVars := []string{
-		"REDIS_ADDR",
-		"REDIS_HOURS_TTL",
-		"REDIS_LTS_DB",
-		"REDIS_STL_DB",
-		"REDIS_META_DB",
-	}
-	for _, envVar := range requiredVars {
-		if os.Getenv(envVar) == "" {
-			missing = append(missing, envVar)
-		}
-	}
-	if len(missing) > 0 {
-		panic(fmt.Sprintf("missing %s env variable", strings.Join(missing, ",")))
-	}
+	addr := env.GetOrDefault("REDIS_ADDR", DEFAULT_ADDR)
+	pwd := env.GetOrDefault("REDIS_PASSWORD", DEFAULT_PASSWORD)
 
-	addr := os.Getenv("REDIS_ADDR")
-	pwd := os.Getenv("REDIS_PASSWORD")
-
-	ltsDB := env.VarToInt("REDIS_LTS_DB")
-	stlDB := env.VarToInt("REDIS_STL_DB")
-	metaDB := env.VarToInt("REDIS_META_DB")
-	ttl := env.VarToInt("REDIS_HOURS_TTL")
+	ltsDB := env.GetOrDefaultInt("REDIS_LTS_DB", DEFAULT_LTS_DB)
+	stlDB := env.GetOrDefaultInt("REDIS_STL_DB", DEFAULT_STL_DB)
+	metaDB := env.GetOrDefaultInt("REDIS_META_DB", DEFAULT_META_DB)
+	ttl := env.GetOrDefaultInt("REDIS_HOURS_TTL", DEFAULT_HOURS_TTL)
 
 	return RedisConfig{
 		Addr:               addr,

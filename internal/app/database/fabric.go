@@ -2,10 +2,10 @@ package database
 
 import (
 	"fmt"
-	"os"
 
 	redis "github.com/blokhinnv/shorty/internal/app/database/redis"
 	sqlite "github.com/blokhinnv/shorty/internal/app/database/sqlite"
+	"github.com/blokhinnv/shorty/internal/app/env"
 	storage "github.com/blokhinnv/shorty/internal/app/storage"
 )
 
@@ -19,7 +19,7 @@ func NewDBStorage() storage.Storage {
 	var storage storage.Storage
 	var err error
 
-	storageType := os.Getenv("STORAGE")
+	storageType := env.GetOrDefault("STORAGE", SQLite)
 	switch storageType {
 	case SQLite:
 		sqliteConfig := sqlite.GetSQLiteConfig()
@@ -31,7 +31,7 @@ func NewDBStorage() storage.Storage {
 		panic(fmt.Sprintf("unknown storage type %v", storageType))
 	}
 	if err != nil {
-		panic("can't create a storage")
+		panic(fmt.Sprintf("can't create a storage: %v", err.Error()))
 	}
 	return storage
 }
