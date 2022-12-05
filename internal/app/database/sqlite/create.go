@@ -16,6 +16,7 @@ CREATE TABLE Url(
 	url VARCHAR NOT NULL,
 	url_id VARCHAR NOT NULL
 );
+CREATE UNIQUE INDEX idx_url  ON Url(url, url_id);
 `
 
 // При инициализации создадим БД, если ее не существует

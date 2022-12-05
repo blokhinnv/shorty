@@ -16,7 +16,7 @@ import (
 const (
 	selectByIDSQL    = "SELECT url FROM Url WHERE url_id = ?"
 	selectByURLSQL   = "SELECT url_id FROM Url WHERE url = ?"
-	insertSQL        = "INSERT INTO Url(url, url_id) VALUES (?, ?)"
+	insertSQL        = "INSERT OR REPLACE INTO Url(url, url_id) VALUES (?, ?)"
 	maxEncodingIDSQL = "SELECT COALESCE(MAX(encoding_id), 0) FROM Url "
 )
 
