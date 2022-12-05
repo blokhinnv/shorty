@@ -204,9 +204,6 @@ func LengthenTestLogic(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client := resty.New().SetRedirectPolicy(NoRedirectPolicy)
-			// Вариант, если порт заранее неизвестен:
-			// shortURLID := urltrans.GetShortURLID(tt.shortURL)
-			// res, err := client.R().Get(fmt.Sprintf("%v/%v", ts.URL, shortURLID))
 			res, err := client.R().Get(tt.shortURL)
 			if err != nil {
 				assert.ErrorIs(t, err, errRedirectBlocked)

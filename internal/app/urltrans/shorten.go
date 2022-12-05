@@ -2,15 +2,15 @@ package urltrans
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"strings"
 
 	"github.com/blokhinnv/shorty/internal/app/storage"
+	"github.com/cespare/xxhash/v2"
 )
 
 const (
-	letters = "abcdefghijklmnopqrstuvwxyz-_0123456789" // алфавит в 38-й СС
+	letters = "0123456789abcdefghijklmnopqrstuvwxyz-_" // алфавит в 38-й СС
 	base    = 38
 )
 
@@ -21,14 +21,14 @@ func isURL(s string) bool {
 }
 
 // Переводит число в 38-ую СС
-func toShortenBase(urlID int) string {
+func toShortenBase(urlUUID uint64) string {
 	var shortURL strings.Builder
-	if urlID == 0 {
+	if urlUUID == 0 {
 		return string(letters[0])
 	}
-	for urlID > 0 {
-		shortURL.WriteByte(letters[urlID%base])
-		urlID = urlID / base
+	for urlUUID > 0 {
+		shortURL.WriteByte(letters[urlUUID%base])
+		urlUUID = urlUUID / base
 	}
 	return shortURL.String()
 }
@@ -39,26 +39,9 @@ func GetShortURL(s storage.Storage, url, host string) (string, error) {
 	if !isURL(url) {
 		return "", fmt.Errorf("not an URL: %s ", url)
 	}
-
-	urlID, err := s.GetIDByURL(url)
-	// Если в базе такой URL есть, то берем его ID
-	// Если нет - добавляем строчку в БД
-	if err == storage.ErrIDWasNotFound {
-		log.Printf("Creating new row for url=%s\n", url)
-		encodingID, _ := s.GetFreeUID()
-		urlID = toShortenBase(encodingID)
-		s.AddURL(url, urlID)
-	} else if err != nil {
-		return "", err
-	}
+	urlID := toShortenBase(xxhash.Sum64String(url))
+	s.AddURL(url, urlID)
 	// Сокращаем
 	shortURL := fmt.Sprintf("http://%v/%v", host, urlID)
 	return shortURL, nil
-}
-
-// Извлекает идентификатор сокращенного URL из полного пути
-func GetShortURLID(shortURL string) string {
-	urlParts := strings.Split(shortURL, "/")
-	urlID := urlParts[len(urlParts)-1]
-	return urlID
 }

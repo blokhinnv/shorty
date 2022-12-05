@@ -71,56 +71,6 @@ func (s *SQLiteStorage) GetURLByID(urlID string) (string, error) {
 	return url, nil
 }
 
-// Возвращает ID URL по его строковому представлению
-func (s *SQLiteStorage) GetIDByURL(url string) (string, error) {
-	// Получаем строки
-	rows, err := s.db.Query(selectByURLSQL, url)
-	if err != nil {
-		return "", err
-	}
-	// не забудем закрыть объект!
-	defer rows.Close()
-
-	// Next подготовит результат и вернет True, если строки есть
-	if !rows.Next() {
-		return "", storage.ErrIDWasNotFound
-	}
-	// Забираем id из первой строки
-	var urlID string
-	if err := rows.Scan(&urlID); err != nil {
-		return "", err
-	}
-	if err := rows.Err(); err != nil {
-		return "", err
-	}
-	return urlID, nil
-}
-
-// Возвращает количество строк в таблице
-func (s *SQLiteStorage) GetFreeUID() (int, error) {
-	// Получаем строки
-	rows, err := s.db.Query(maxEncodingIDSQL)
-	if err != nil {
-		return -1, err
-	}
-	// не забудем закрыть объект!
-	defer rows.Close()
-
-	// Next подготовит результат и вернет True, если строки есть
-	if !rows.Next() {
-		return -1, err
-	}
-	// Забираем id из первой строки
-	var max int
-	if err := rows.Scan(&max); err != nil {
-		return -1, err
-	}
-	if err := rows.Err(); err != nil {
-		return -1, err
-	}
-	return max + 1, nil
-}
-
 // Закрывает соединение с SQLite
 func (s *SQLiteStorage) Close() {
 	s.db.Close()
