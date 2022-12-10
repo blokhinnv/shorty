@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	letters = "0123456789abcdefghijklmnopqrstuvwxyz-_" // алфавит в 38-й СС
-	base    = 38
+	letters = "0123456789abcdefghijklmnopqrstuvwxyz_" // алфавит в 38-й СС
+	base    = 37
 )
 
 // Проверяет, является ли строка URL
