@@ -3,34 +3,21 @@ package database
 import (
 	"time"
 
-	"github.com/blokhinnv/shorty/internal/app/env"
+	"github.com/caarlos0/env/v6"
 )
 
 type RedisConfig = struct {
-	Addr               string
-	Password           string
-	ShortToLongDB      int
-	KeyExpirationHours time.Duration
+	Addr               string        `env:"REDIS_ADDR"      envDefault:"localhost:6379"`
+	Password           string        `env:"REDIS_PASSWORD"  envDefault:""`
+	ShortToLongDB      int           `env:"REDIS_STL_DB"    envDefault:"1"`
+	KeyExpirationHours time.Duration `env:"REDIS_HOURS_TTL" envDefault:"1h"`
 }
-
-const (
-	DefaultAddr     = "localhost:6379"
-	DefaultPassword = ""
-	DefaultSTLDB    = 2
-	DefaultHoursTTL = 1
-)
 
 // Конструктор конфига Redis на основе переменных окружения
 func GetRedisConfig() RedisConfig {
-	addr := env.GetOrDefault("REDIS_ADDR", DefaultAddr)
-	pwd := env.GetOrDefault("REDIS_PASSWORD", DefaultPassword)
-	stlDB := env.GetOrDefaultInt("REDIS_STL_DB", DefaultSTLDB)
-	ttl := env.GetOrDefaultInt("REDIS_HOURS_TTL", DefaultHoursTTL)
-
-	return RedisConfig{
-		Addr:               addr,
-		Password:           pwd,
-		ShortToLongDB:      stlDB,
-		KeyExpirationHours: time.Duration(ttl) * time.Hour,
+	var config RedisConfig
+	if err := env.Parse(&config); err != nil {
+		panic(err)
 	}
+	return config
 }

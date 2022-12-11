@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/asaskevich/govalidator"
+	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/blokhinnv/shorty/internal/app/urltrans"
 )
@@ -48,14 +49,22 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 		}
 		// ... и проверяем валидность
 		result, err := govalidator.ValidateStruct(bodyDecoded)
-		fmt.Println(result, err)
 		if err != nil || !result {
 			http.Error(w, fmt.Sprintf("Body is not valid: %v", err.Error()), http.StatusBadRequest)
 			return
 		}
 		// Сокращаем URL
 		longURL := bodyDecoded.URL
-		shortenURL, err := urltrans.GetShortURL(s, longURL, r.Host)
+		baseURL, ok := r.Context().Value(middleware.BaseURLCtxKey).(string)
+		if !ok {
+			http.Error(
+				w,
+				http.StatusText(http.StatusInternalServerError),
+				http.StatusInternalServerError,
+			)
+			return
+		}
+		shortenURL, err := urltrans.GetShortURL(s, longURL, baseURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

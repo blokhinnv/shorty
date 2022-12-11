@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/blokhinnv/shorty/internal/app/database"
+	"github.com/blokhinnv/shorty/internal/app/server/config"
 	"github.com/blokhinnv/shorty/internal/app/server/routes"
 )
 
@@ -14,6 +15,7 @@ func RunServer() {
 	s := database.NewDBStorage()
 	defer s.Close()
 	r := routes.NewRouter(s)
-	// Сервер должен быть доступен по адресу: http://localhost:8080
-	log.Fatal(http.ListenAndServe(":8080", r))
+	cfg := config.GetServerConfig()
+	log.Printf("Starting server with config %+v\n", cfg)
+	log.Fatal(http.ListenAndServe(cfg.ServerAddress, r))
 }

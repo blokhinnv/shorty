@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/blokhinnv/shorty/internal/app/urltrans"
 )
@@ -31,7 +32,17 @@ func GetShortURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.R
 		if longURL == "" {
 			longURL = string(query)
 		}
-		shortenURL, err := urltrans.GetShortURL(s, longURL, r.Host)
+		baseURL, ok := r.Context().Value(middleware.BaseURLCtxKey).(string)
+		if !ok {
+			http.Error(
+				w,
+				http.StatusText(http.StatusInternalServerError),
+				http.StatusInternalServerError,
+			)
+			return
+		}
+
+		shortenURL, err := urltrans.GetShortURL(s, longURL, baseURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

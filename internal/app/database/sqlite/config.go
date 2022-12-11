@@ -1,19 +1,18 @@
 package database
 
 import (
-	"github.com/blokhinnv/shorty/internal/app/env"
+	"github.com/caarlos0/env/v6"
 )
 
 type SQLiteConfig = struct {
-	DBPath string
+	DBPath string `env:"SQLITE_DB_PATH" envDefault:"db.sqlite3"`
 }
-
-const (
-	DefaultDBPath = "db.sqlite3"
-)
 
 // Конструктор конфига SQLite на основе переменных окружения
 func GetSQLiteConfig() SQLiteConfig {
-	dbPath := env.GetOrDefault("SQLITE_DB_PATH", DefaultDBPath)
-	return SQLiteConfig{dbPath}
+	var config SQLiteConfig
+	if err := env.Parse(&config); err != nil {
+		panic(err)
+	}
+	return config
 }

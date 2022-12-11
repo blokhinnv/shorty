@@ -11,7 +11,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/blokhinnv/shorty/internal/app/server/config"
 	"github.com/go-resty/resty/v2"
+	"github.com/joho/godotenv"
 )
 
 // Вариант с "ручным" созданием клиента, запроса и т.д.
@@ -75,8 +77,13 @@ func sendRestyRequest(endpoint, long string) {
 
 // Точка входа клиента
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "dev" {
+		godotenv.Load("dev.env")
+	} else {
+		godotenv.Load("local.env")
+	}
 	// адрес сервиса (как его писать, расскажем в следующем уроке)
-	endpoint := "http://localhost:8080/"
+	endpoint := fmt.Sprintf("http://%v/", config.GetServerConfig().ServerAddress)
 	// приглашение в консоли
 	fmt.Println("Введите длинный URL")
 	// открываем потоковое чтение из консоли
