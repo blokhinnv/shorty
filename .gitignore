@@ -25,3 +25,4 @@ vendor/
 # Instances of DB
 *.sqlite3
 /tmp
+*.jsonl

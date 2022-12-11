@@ -127,3 +127,8 @@ func Test_ShortenAPI_SQLite(t *testing.T) {
 	godotenv.Load("test_sqlite.env")
 	ShortenAPITestLogic(t)
 }
+
+func Test_ShortenAPI_Text(t *testing.T) {
+	godotenv.Load("test_text.env")
+	ShortenAPITestLogic(t)
+}

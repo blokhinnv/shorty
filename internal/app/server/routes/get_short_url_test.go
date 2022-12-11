@@ -105,3 +105,8 @@ func Test_Shorten_SQLite(t *testing.T) {
 	godotenv.Load("test_sqlite.env")
 	ShortenTestLogic(t)
 }
+
+func Test_Shorten_Text(t *testing.T) {
+	godotenv.Load("test_text.env")
+	ShortenTestLogic(t)
+}

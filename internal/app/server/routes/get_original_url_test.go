@@ -87,3 +87,8 @@ func Test_Lengthen_SQLite(t *testing.T) {
 	godotenv.Load("test_sqlite.env")
 	LengthenTestLogic(t)
 }
+
+func Test_Lengthen_Test(t *testing.T) {
+	godotenv.Load("test_text.env")
+	LengthenTestLogic(t)
+}
