@@ -172,17 +172,10 @@ func (s *TextStorage) UpdateStorage() {
 }
 
 func (s *TextStorage) registerUpdateStorage() {
-	ticker := time.NewTicker(5 * time.Second)
-	quit := make(chan struct{})
+	ticker := time.NewTicker(s.ttlOnDisk)
 	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				s.UpdateStorage()
-			case <-quit:
-				ticker.Stop()
-				return
-			}
+		for range ticker.C {
+			s.UpdateStorage()
 		}
 	}()
 }

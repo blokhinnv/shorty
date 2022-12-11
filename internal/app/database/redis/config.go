@@ -6,7 +6,7 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
-type RedisConfig = struct {
+type RedisConfig struct {
 	Addr               string        `env:"REDIS_ADDR"      envDefault:"localhost:6379"`
 	Password           string        `env:"REDIS_PASSWORD"  envDefault:""`
 	ShortToLongDB      int           `env:"REDIS_STL_DB"    envDefault:"1"`

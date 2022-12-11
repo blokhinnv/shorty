@@ -4,7 +4,7 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
-type SQLiteConfig = struct {
+type SQLiteConfig struct {
 	DBPath string `env:"SQLITE_DB_PATH" envDefault:"db.sqlite3"`
 }
 

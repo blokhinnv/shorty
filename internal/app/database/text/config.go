@@ -7,7 +7,7 @@ import (
 )
 
 // Конфиг текстового хранилища
-type TextStorageConfig = struct {
+type TextStorageConfig struct {
 	FileStoragePath string        `env:"FILE_STORAGE_PATH"           envDefault:"db.jsonl"`
 	ClearOnStart    bool          `env:"FILE_STORAGE_CLEAR_ON_START" envDefault:"false"`
 	TTLOnDisk       time.Duration `env:"FILE_STORAGE_TTL_ON_DISK"    envDefault:"1h"`
