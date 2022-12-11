@@ -42,6 +42,6 @@ func GetShortURL(s storage.Storage, url, baseURL string) (string, error) {
 	urlID := toShortenBase(xxhash.Sum64String(url))
 	s.AddURL(url, urlID)
 	// Сокращаем
-	shortURL := fmt.Sprintf("http://%v/%v", baseURL, urlID)
+	shortURL := fmt.Sprintf("%v/%v", baseURL, urlID)
 	return shortURL, nil
 }

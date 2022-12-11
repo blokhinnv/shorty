@@ -24,7 +24,7 @@ func LengthenTestLogic(t *testing.T) {
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
-	shortURL, err := urltrans.GetShortURL(s, longURL, host)
+	shortURL, err := urltrans.GetShortURL(s, longURL, baseURL)
 	require.NoError(t, err)
 	type want struct {
 		statusCode  int

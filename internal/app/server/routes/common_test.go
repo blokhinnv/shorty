@@ -2,25 +2,28 @@ package routes
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 
+	"github.com/blokhinnv/shorty/internal/app/server/config"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-resty/resty/v2"
 )
 
-const port = "8080"
-
-var host = fmt.Sprintf("localhost:%v", port)
+var serverCfg = config.GetServerConfig()
+var (
+	host    = serverCfg.ServerAddress
+	port    = strings.Split(serverCfg.ServerAddress, ":")[1]
+	baseURL = serverCfg.BaseURL
+)
 
 // Конструктор нового сервера
 // Нужен, чтобы убедиться, что сервер запустится на нужном нам порте
 func NewServerWithPort(r chi.Router, port string) *httptest.Server {
-	l, err := net.Listen("tcp", fmt.Sprintf("localhost:%v", port))
+	l, err := net.Listen("tcp", host)
 	if err != nil {
 		log.Fatal(err)
 	}
