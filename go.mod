@@ -11,6 +11,7 @@ require (
 	github.com/go-redis/redis v6.15.9+incompatible // indirect
 	github.com/joho/godotenv v1.4.0 // indirect
 	github.com/txn2/txeh v1.3.0 // indirect
+	golang.org/x/exp v0.0.0-20221212164502-fae10dda9338 // indirect
 )
 
 require (
