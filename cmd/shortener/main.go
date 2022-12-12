@@ -15,8 +15,8 @@ import (
 var flagCfg = config.FlagConfig{}
 
 func init() {
-	flag.StringVar(&flagCfg.ServerAddress, "a", "http://localhost:8080", "server address")
-	flag.StringVar(&flagCfg.BaseURL, "b", "http://localhost:8080", "base url")
+	flag.StringVar(&flagCfg.ServerAddress, "a", "", "server address")
+	flag.StringVar(&flagCfg.BaseURL, "b", "", "base url")
 	flag.StringVar(&flagCfg.FileStoragePath, "f", "db.jsonl", "file where the data is stored")
 }
 
