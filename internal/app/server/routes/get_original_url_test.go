@@ -15,9 +15,9 @@ import (
 
 // Тесты для GET-запроса
 func LengthenTestLogic(t *testing.T) {
-	s := db.NewDBStorage()
+	s := db.NewDBStorage(flagCfg)
 	defer s.Close()
-	r := NewRouter(s)
+	r := NewRouter(s, serverCfg)
 	ts := NewServerWithPort(r, port)
 	defer ts.Close()
 

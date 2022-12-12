@@ -83,7 +83,8 @@ func main() {
 		godotenv.Load("local.env")
 	}
 	// адрес сервиса (как его писать, расскажем в следующем уроке)
-	endpoint := fmt.Sprintf("http://%v/", config.GetServerConfig().ServerAddress)
+	flagCfg := config.FlagConfig{}
+	endpoint := fmt.Sprintf("http://%v/", config.GetServerConfig(flagCfg).ServerAddress)
 	// приглашение в консоли
 	fmt.Println("Введите длинный URL")
 	// открываем потоковое чтение из консоли

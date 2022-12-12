@@ -3,6 +3,7 @@ package database
 import (
 	"time"
 
+	"github.com/blokhinnv/shorty/internal/app/server/config"
 	"github.com/caarlos0/env/v6"
 )
 
@@ -14,11 +15,19 @@ type TextStorageConfig struct {
 	TTLInMemory     time.Duration `env:"FILE_STORAGE_TTL_IN_MEMORY"  envDefault:"15m"`
 }
 
+// Обновляет конфиг хранилища
+func (cfg *TextStorageConfig) UpdateFromFlags(flagCfg config.FlagConfig) {
+	if flagCfg.FileStoragePath != "" {
+		cfg.FileStoragePath = flagCfg.FileStoragePath
+	}
+}
+
 // Конструктор конфига текстового хранилища на основе переменных окружения
-func GetTextStorageConfig() TextStorageConfig {
+func GetTextStorageConfig(flagCfg config.FlagConfig) TextStorageConfig {
 	var config TextStorageConfig
 	if err := env.Parse(&config); err != nil {
 		panic(err)
 	}
+	config.UpdateFromFlags(flagCfg)
 	return config
 }

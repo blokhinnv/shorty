@@ -13,7 +13,8 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
-var serverCfg = config.GetServerConfig()
+var flagCfg = config.FlagConfig{} // будем считать, что в тестах флаги не используются
+var serverCfg = config.GetServerConfig(flagCfg)
 var (
 	host    = serverCfg.ServerAddress
 	port    = strings.Split(serverCfg.ServerAddress, ":")[1]

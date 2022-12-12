@@ -9,6 +9,7 @@ import (
 	sqlite "github.com/blokhinnv/shorty/internal/app/database/sqlite"
 	text "github.com/blokhinnv/shorty/internal/app/database/text"
 	"github.com/blokhinnv/shorty/internal/app/env"
+	"github.com/blokhinnv/shorty/internal/app/server/config"
 	storage "github.com/blokhinnv/shorty/internal/app/storage"
 )
 
@@ -24,15 +25,15 @@ const (
 )
 
 // Конструктор хранилища на основе БД
-func NewDBStorage() storage.Storage {
+func NewDBStorage(flagCfg config.FlagConfig) storage.Storage {
 	var storage storage.Storage
 	var err error
 
 	// я бы лучше оставил switch на 3 разных хранилища
 	// но в задании четко сказано, что если есть FILE_STORAGE_PATH,
 	// то надо использовать текстовые файлы для хранения
-	if os.Getenv(FileStoragePathVar) != "" {
-		textStorageConfig := text.GetTextStorageConfig()
+	if os.Getenv(FileStoragePathVar) != "" || flagCfg.FileStoragePath != "" {
+		textStorageConfig := text.GetTextStorageConfig(flagCfg)
 		log.Printf("Starting TextStorage with config %+v\n", textStorageConfig)
 		storage, err = text.NewTextStorage(textStorageConfig)
 	} else {
@@ -47,7 +48,7 @@ func NewDBStorage() storage.Storage {
 			log.Printf("Starting RedisStorage with config %+v\n", redisConfig)
 			storage, err = redis.NewRedisStorage(redisConfig)
 		case Text:
-			textStorageConfig := text.GetTextStorageConfig()
+			textStorageConfig := text.GetTextStorageConfig(flagCfg)
 			log.Printf("Starting TextStorage with config %+v\n", textStorageConfig)
 			storage, err = text.NewTextStorage(textStorageConfig)
 		default:

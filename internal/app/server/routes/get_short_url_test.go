@@ -18,9 +18,9 @@ import (
 func ShortenTestLogic(t *testing.T) {
 	// Если стартануть сервер cmd/shortener/main,
 	// то будет использоваться его роутинг даже в тестах :о
-	s := db.NewDBStorage()
+	s := db.NewDBStorage(flagCfg)
 	defer s.Close()
-	r := NewRouter(s)
+	r := NewRouter(s, serverCfg)
 
 	ts := NewServerWithPort(r, port)
 	defer ts.Close()
