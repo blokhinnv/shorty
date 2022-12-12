@@ -3,13 +3,12 @@ package database
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/go-redis/redis"
 )
-
-const nTimesAddedKey = "__nAdded__"
 
 type RedisStorage struct {
 	shortToLongDB     *redis.Client
@@ -37,8 +36,7 @@ func (s *RedisStorage) AddURL(url, urlID string) {
 	if err != nil {
 		panic(fmt.Sprintf("can't add record (%v, %v)into db\n", url, urlID))
 	}
-
-	s.shortToLongDB.Incr(nTimesAddedKey)
+	log.Printf("Added %v=>%v to storage\n", url, urlID)
 }
 
 // Возвращает URL по его ID в БД

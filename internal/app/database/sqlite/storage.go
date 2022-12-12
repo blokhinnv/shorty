@@ -9,6 +9,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
@@ -44,6 +45,7 @@ func (s *SQLiteStorage) AddURL(url, urlID string) {
 	if err != nil {
 		panic("can't execute insert query\n")
 	}
+	log.Printf("Added %v=>%v to storage\n", url, urlID)
 }
 
 // Возвращает URL по его ID в БД
