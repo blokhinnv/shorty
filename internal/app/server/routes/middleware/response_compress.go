@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"bytes"
 	"compress/gzip"
 	"encoding/binary"
 	"io"
@@ -23,39 +24,40 @@ var compressableContentTypes = []string{
 	"text/xml",
 }
 
-const minBytesToCompress = 1024
+const minBytesToCompress = 10
 
 type gzipWriter struct {
 	http.ResponseWriter // встраиваем ResponseWriter и забираем методы
 	Writer              io.Writer
 	statusCode          int
+	buf                 *bytes.Buffer
 }
 
-// Переопределенный метод ResponseWriter: проверяет, нужно ли
-// кодировать данные на основе их размера, отправляет заголовки и пишет ответ
+// Переопределенный метод ResponseWriter: накапливает
+// сообщения от последующих обработчиков в буфере
 func (gzw *gzipWriter) Write(b []byte) (int, error) {
-	if gzw.IsCompressableStatus() && gzw.IsCompressableContent() && gzw.IsCompressableSize(b) {
-		gzw.SwitchToCompressMode()
-	} else {
-		gzw.ResponseWriter.WriteHeader(gzw.statusCode)
-	}
-	return gzw.Writer.Write(b)
+	return gzw.buf.Write(b)
 }
 
-// Создает gzip.Writer, заменяет дефолтный Writer и
-// указывает заголовок Content-Encoding
-func (gzw *gzipWriter) SwitchToCompressMode() {
-	gz, _ := gzip.NewWriterLevel(gzw.Writer, gzip.BestSpeed)
-	gzw.ResponseWriter.Header().Set("Content-Encoding", "gzip")
-	gzw.Writer = gz
+func (gzw *gzipWriter) writeResponse() {
+	// если кодировать нужно, то создаем gzip.Writer,
+	// заменяем дефолтный Writer и
+	// указываем заголовок Content-Encoding
+	if gzw.IsCompressableStatus() && gzw.IsCompressableContent() &&
+		gzw.IsCompressableSize(gzw.buf.Bytes()) {
+		gz, _ := gzip.NewWriterLevel(gzw.Writer, gzip.BestSpeed)
+		gzw.ResponseWriter.Header().Set("Content-Encoding", "gzip")
+		gzw.Writer = gz
+	}
 	gzw.ResponseWriter.WriteHeader(gzw.statusCode)
+	gzw.Writer.Write(gzw.buf.Bytes())
 }
 
 // Переопределенный метод ResponseWriter: проверяет, нужно ли
 // кодировать данные на основе statusCode и contentType
 // я хочу добавить проверки на тип контента и размер
-// я вижу так: мне нужно вкрячиться куда-то между вызовами w.Header().Set
-// и w.WriteHeader + w.Write, которые будут в самих обработчиках
+// я вижу так: мне нужно вкрячиться куда-то после вызовов
+// (может быть несколько!) w.Write, которые будут в самих обработчиках
 // и при этом нужно сделать так, чтобы код самих обработчиков не надо было переписывать
 // лучший вариант, который я смог придумать - переопределить WriteHeader и Write...
 func (gzw *gzipWriter) WriteHeader(statusCode int) {
@@ -105,7 +107,8 @@ func (gzw *gzipWriter) Close() {
 
 // Конструктор gzipWriter
 func NewGzipWriter(w http.ResponseWriter) *gzipWriter {
-	return &gzipWriter{ResponseWriter: w, Writer: w}
+	buf := new(bytes.Buffer)
+	return &gzipWriter{ResponseWriter: w, Writer: w, buf: buf}
 }
 
 // Middleware для сжатия ответа
@@ -121,5 +124,6 @@ func ResponseGZipCompess(next http.Handler) http.Handler {
 		writer := NewGzipWriter(w)
 		defer writer.Close()
 		next.ServeHTTP(writer, r)
+		writer.writeResponse()
 	})
 }

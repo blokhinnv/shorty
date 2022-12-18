@@ -50,5 +50,7 @@ func GetShortURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.R
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(shortenURL))
+		// я думал, что после вызова Write сразу отправляется ответ, но
+		// оказалось, что я был не прав...
 	}
 }
