@@ -29,31 +29,27 @@ func NewDBStorage(flagCfg config.FlagConfig) storage.Storage {
 	var storage storage.Storage
 	var err error
 
-	// я бы лучше оставил switch на 3 разных хранилища
-	// но в задании четко сказано, что если есть FILE_STORAGE_PATH,
-	// то надо использовать текстовые файлы для хранения
+	storageType := env.GetOrDefault(StorageEnvVar, SQLite)
+	// При отсутствии переменной окружения или при её пустом значении
+	// вернитесь к хранению сокращённых URL в памяти.
 	if os.Getenv(FileStoragePathVar) != "" || flagCfg.FileStoragePath != "" {
+		storageType = Text
+	}
+	switch storageType {
+	case SQLite:
+		sqliteConfig := sqlite.GetSQLiteConfig()
+		log.Printf("Starting SQLiteStorage with config %+v\n", sqliteConfig)
+		storage, err = sqlite.NewSQLiteStorage(sqliteConfig)
+	case Redis:
+		redisConfig := redis.GetRedisConfig()
+		log.Printf("Starting RedisStorage with config %+v\n", redisConfig)
+		storage, err = redis.NewRedisStorage(redisConfig)
+	case Text:
 		textStorageConfig := text.GetTextStorageConfig(flagCfg)
 		log.Printf("Starting TextStorage with config %+v\n", textStorageConfig)
 		storage, err = text.NewTextStorage(textStorageConfig)
-	} else {
-		storageType := env.GetOrDefault(StorageEnvVar, SQLite)
-		switch storageType {
-		case SQLite:
-			sqliteConfig := sqlite.GetSQLiteConfig()
-			log.Printf("Starting SQLiteStorage with config %+v\n", sqliteConfig)
-			storage, err = sqlite.NewSQLiteStorage(sqliteConfig)
-		case Redis:
-			redisConfig := redis.GetRedisConfig()
-			log.Printf("Starting RedisStorage with config %+v\n", redisConfig)
-			storage, err = redis.NewRedisStorage(redisConfig)
-		case Text:
-			textStorageConfig := text.GetTextStorageConfig(flagCfg)
-			log.Printf("Starting TextStorage with config %+v\n", textStorageConfig)
-			storage, err = text.NewTextStorage(textStorageConfig)
-		default:
-			panic(fmt.Sprintf("unknown storage type %v", storageType))
-		}
+	default:
+		panic(fmt.Sprintf("unknown storage type %v", storageType))
 	}
 	if err != nil {
 		panic(fmt.Sprintf("can't create a storage: %v", err.Error()))
