@@ -3,16 +3,27 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"compress/gzip"
+	"flag"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
 
+	"github.com/blokhinnv/shorty/internal/app/server/config"
 	"github.com/go-resty/resty/v2"
+	"github.com/joho/godotenv"
 )
+
+var compress bool
+
+func init() {
+	flag.BoolVar(&compress, "c", false, "whether to compress request body")
+}
 
 // Вариант с "ручным" созданием клиента, запроса и т.д.
 func sendHTTPRequest(endpoint, long string) {
@@ -60,6 +71,7 @@ func sendHTTPRequest(endpoint, long string) {
 
 // Вариант с отправкой запроса при помощи resty
 func sendRestyRequest(endpoint, long string) {
+	log.Printf("Sending raw request...")
 	client := resty.New()
 	resp, err := client.R().
 		SetHeader("Content-Type", "application/x-www-form-urlencoded").
@@ -73,10 +85,51 @@ func sendRestyRequest(endpoint, long string) {
 	fmt.Println(string(resp.Body()))
 }
 
+func compressLongURL(long string) string {
+	var b bytes.Buffer
+	w, err := gzip.NewWriterLevel(&b, gzip.BestCompression)
+	if err != nil {
+		panic(err.Error())
+	}
+	_, err = w.Write([]byte(long))
+	if err != nil {
+		panic(err.Error())
+	}
+	err = w.Close()
+	if err != nil {
+		panic(err.Error())
+	}
+	return b.String()
+}
+
+// Вариант с отправкой запроса при помощи resty c компрессией данных
+func sendRestyRequestCompessed(endpoint, long string) {
+	log.Printf("Sending compressed request...")
+	client := resty.New()
+	resp, err := client.R().
+		SetHeader("Content-Type", "application/x-www-form-urlencoded").
+		SetHeader("Content-Length", strconv.Itoa(len(long))).
+		SetHeader("Content-Encoding", "gzip").
+		SetBody(compressLongURL(long)).
+		Post(endpoint)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	fmt.Println(string(resp.Body()))
+}
+
 // Точка входа клиента
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "dev" {
+		godotenv.Load("dev.env")
+	} else {
+		godotenv.Load("local.env")
+	}
+	flag.Parse()
 	// адрес сервиса (как его писать, расскажем в следующем уроке)
-	endpoint := "http://localhost:8080/"
+	flagCfg := config.FlagConfig{}
+	endpoint := fmt.Sprintf("http://%v/", config.GetServerConfig(flagCfg).ServerAddress)
 	// приглашение в консоли
 	fmt.Println("Введите длинный URL")
 	// открываем потоковое чтение из консоли
@@ -89,5 +142,9 @@ func main() {
 	}
 	long = strings.TrimSpace(long)
 	// sendHTTPRequest(endpoint, long)
-	sendRestyRequest(endpoint, long)
+	if compress {
+		sendRestyRequestCompessed(endpoint, long)
+	} else {
+		sendRestyRequest(endpoint, long)
+	}
 }
