@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	selectByURLIDSQL     = "SELECT url, user_token FROM Url WHERE url_id = ?"
-	selectByUserTokenSQL = "SELECT url, url_id FROM Url WHERE user_token = ?"
-	insertSQL            = "INSERT OR REPLACE INTO Url(url, url_id, user_token) VALUES (?, ?, ?)"
+	selectByURLIDSQL  = "SELECT url, user_id FROM Url WHERE url_id = ?"
+	selectByUserIDSQL = "SELECT url, url_id FROM Url WHERE user_id = ?"
+	insertSQL         = "INSERT OR REPLACE INTO Url(url, url_id, user_id) VALUES (?, ?, ?)"
 )
 
 type SQLiteStorage struct {
@@ -35,12 +35,12 @@ func NewSQLiteStorage(conf SQLiteConfig) (*SQLiteStorage, error) {
 }
 
 // Метод для добавления нового URL в БД
-func (s *SQLiteStorage) AddURL(url, urlID, userToken string) error {
+func (s *SQLiteStorage) AddURL(url, urlID string, userID uint32) error {
 	stmt, err := s.db.Prepare(insertSQL)
 	if err != nil {
 		return err
 	}
-	_, err = stmt.Exec(url, urlID, userToken)
+	_, err = stmt.Exec(url, urlID, userID)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (s *SQLiteStorage) GetURLByID(urlID string) (storage.Record, error) {
 	}
 	// Забираем url из первой строки
 	rec := storage.Record{URLID: urlID}
-	if err := rows.Scan(&rec.URL, &rec.UserToken); err != nil {
+	if err := rows.Scan(&rec.URL, &rec.UserID); err != nil {
 		return storage.Record{}, err
 	}
 	if err := rows.Err(); err != nil {
@@ -73,17 +73,17 @@ func (s *SQLiteStorage) GetURLByID(urlID string) (storage.Record, error) {
 	return rec, nil
 }
 
-func (s *SQLiteStorage) GetURLsByUser(userToken string) ([]storage.Record, error) {
+func (s *SQLiteStorage) GetURLsByUser(userID uint32) ([]storage.Record, error) {
 	results := make([]storage.Record, 0)
 
-	rows, err := s.db.Query(selectByUserTokenSQL, userToken)
+	rows, err := s.db.Query(selectByUserIDSQL, userID)
 	if err != nil {
 		return nil, err
 	}
 	// не забудем закрыть объект!
 	defer rows.Close()
 	for rows.Next() {
-		rec := storage.Record{UserToken: userToken}
+		rec := storage.Record{UserID: userID}
 		if err := rows.Scan(&rec.URL, &rec.URLID); err != nil {
 			return nil, err
 		}

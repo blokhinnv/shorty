@@ -41,7 +41,7 @@ func GetOriginalURLsHandlerFunc(s storage.Storage) func(http.ResponseWriter, *ht
 			return
 		}
 
-		userToken, ok := r.Context().Value(middleware.UserTokenCtxKey).(string)
+		userID, ok := r.Context().Value(middleware.UserIDCtxKey).(uint32)
 		if !ok {
 			http.Error(
 				w,
@@ -51,7 +51,7 @@ func GetOriginalURLsHandlerFunc(s storage.Storage) func(http.ResponseWriter, *ht
 			return
 		}
 
-		records, err := s.GetURLsByUser(userToken)
+		records, err := s.GetURLsByUser(userID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNoContent)
 			return

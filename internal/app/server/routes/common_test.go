@@ -21,6 +21,11 @@ var (
 	baseURL = serverCfg.BaseURL
 )
 
+const (
+	userID    uint32 = 159190441
+	userToken string = "097d0da931dd3d38279e5f9e7703943aed867a734985d723730ddcf2f32b7047d5f67248"
+)
+
 // Конструктор нового сервера
 // Нужен, чтобы убедиться, что сервер запустится на нужном нам порте
 func NewServerWithPort(r chi.Router, port string) *httptest.Server {

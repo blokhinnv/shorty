@@ -17,11 +17,16 @@ import (
 )
 
 // Функция для заполнения хранилища примерами
-func addRecords(t *testing.T, s storage.Storage, userToken, baseURL string) []ShortenedURLSAnswer {
+func addRecords(
+	t *testing.T,
+	s storage.Storage,
+	userID uint32,
+	baseURL string,
+) []ShortenedURLSAnswer {
 	longURLs := []string{"https://sqliteonline.com/", "https://mail.ru/"}
 	answer := make([]ShortenedURLSAnswer, len(longURLs))
 	for idx, longURL := range longURLs {
-		shortURL, err := urltrans.GetShortURL(s, longURL, userToken, baseURL)
+		shortURL, err := urltrans.GetShortURL(s, longURL, userID, baseURL)
 		require.NoError(t, err)
 		answer[idx] = ShortenedURLSAnswer{URL: longURL, URLID: shortURL}
 	}
@@ -39,7 +44,6 @@ func ListOfURLsTestLogic(t *testing.T) {
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
 	reqURL := "http://localhost:8080/api/user/urls"
-	userToken := "ed7ea688ef57168201bd25eebf28050dac012ab7873da94e726b10dcafb5e29a6a20e80e"
 	var answer []ShortenedURLSAnswer
 	type want struct {
 		statusCode  int
@@ -89,7 +93,7 @@ func ListOfURLsTestLogic(t *testing.T) {
 			}
 		})
 		// Остальные - по заполненному
-		answer = addRecords(t, s, userToken, baseURL)
+		answer = addRecords(t, s, userID, baseURL)
 	}
 }
 

@@ -28,8 +28,7 @@ func ShortenTestLogic(t *testing.T) {
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
-	userToken := "ed7ea688ef57168201bd25eebf28050dac012ab7873da94e726b10dcafb5e29a6a20e80e"
-	shortURL, err := urltrans.GetShortURL(s, longURL, userToken, baseURL)
+	shortURL, err := urltrans.GetShortURL(s, longURL, userID, baseURL)
 	require.NoError(t, err)
 
 	type want struct {

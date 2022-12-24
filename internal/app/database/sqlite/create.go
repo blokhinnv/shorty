@@ -15,7 +15,7 @@ CREATE TABLE Url(
 	encoding_id INTEGER PRIMARY KEY AUTOINCREMENT,
 	url VARCHAR NOT NULL,
 	url_id VARCHAR NOT NULL,
-	user_token VARCHAR NOT NULL,
+	user_id INT NOT NULL,
 	added VARCHAR,
 	requested_at VARCHAR
 );
