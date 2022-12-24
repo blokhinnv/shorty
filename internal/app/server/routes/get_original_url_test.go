@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
-	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/urltrans"
 	"github.com/go-resty/resty/v2"
 	"github.com/joho/godotenv"
@@ -74,10 +73,6 @@ func LengthenTestLogic(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client := resty.New().SetRedirectPolicy(NoRedirectPolicy)
-			client.SetCookie(&http.Cookie{
-				Name:  middleware.UserTokenCookieName,
-				Value: userToken,
-			})
 			res, err := client.R().Get(tt.shortURL)
 			if err != nil {
 				assert.ErrorIs(t, err, errRedirectBlocked)

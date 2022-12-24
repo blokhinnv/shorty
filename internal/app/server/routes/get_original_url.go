@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/blokhinnv/shorty/internal/app/urltrans"
 )
@@ -27,19 +26,8 @@ func GetOriginalURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 			http.Error(w, "Incorrent GET request", http.StatusBadRequest)
 			return
 		}
-		// В этом месте уже обязательно должно быть ясно
-		// для кого мы готовим ответ
-		userToken, ok := r.Context().Value(middleware.UserTokenCtxKey).(string)
-		if !ok {
-			http.Error(
-				w,
-				"no user id provided",
-				http.StatusInternalServerError,
-			)
-			return
-		}
 
-		url, err := urltrans.GetOriginalURL(s, urlID, userToken)
+		url, err := urltrans.GetOriginalURL(s, urlID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNoContent)
 			return

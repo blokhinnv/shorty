@@ -234,8 +234,8 @@ func (s *TextStorage) FetchFile(request TextStorageRequest) ([]storage.Record, e
 }
 
 // Возвращает URL по его ID (сначала смотрит в памяти, потом в файле)
-func (s *TextStorage) GetURLByID(urlID, userToken string) (storage.Record, error) {
-	req := TextStorageRequest{URLID: urlID, UserToken: userToken, Size: 1, How: ByBoth}
+func (s *TextStorage) GetURLByID(urlID string) (storage.Record, error) {
+	req := TextStorageRequest{URLID: urlID, Size: 1, How: ByURLID}
 	r, err := s.FetchMem(req)
 	if errors.Is(err, storage.ErrURLWasNotFound) {
 		r, err = s.FetchFile(req)

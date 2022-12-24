@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	selectByURLIDSQL     = "SELECT url FROM Url WHERE url_id = ? AND user_token = ?"
+	selectByURLIDSQL     = "SELECT url, user_token FROM Url WHERE url_id = ?"
 	selectByUserTokenSQL = "SELECT url, url_id FROM Url WHERE user_token = ?"
 	insertSQL            = "INSERT OR REPLACE INTO Url(url, url_id, user_token) VALUES (?, ?, ?)"
 )
@@ -49,9 +49,9 @@ func (s *SQLiteStorage) AddURL(url, urlID, userToken string) error {
 }
 
 // Возвращает URL по его ID в БД
-func (s *SQLiteStorage) GetURLByID(urlID, userToken string) (storage.Record, error) {
+func (s *SQLiteStorage) GetURLByID(urlID string) (storage.Record, error) {
 	// Получаем строки
-	rows, err := s.db.Query(selectByURLIDSQL, urlID, userToken)
+	rows, err := s.db.Query(selectByURLIDSQL, urlID)
 	if err != nil {
 		return storage.Record{}, err
 	}
@@ -63,8 +63,8 @@ func (s *SQLiteStorage) GetURLByID(urlID, userToken string) (storage.Record, err
 		return storage.Record{}, storage.ErrURLWasNotFound
 	}
 	// Забираем url из первой строки
-	rec := storage.Record{URLID: urlID, UserToken: userToken}
-	if err := rows.Scan(&rec.URL); err != nil {
+	rec := storage.Record{URLID: urlID}
+	if err := rows.Scan(&rec.URL, &rec.UserToken); err != nil {
 		return storage.Record{}, err
 	}
 	if err := rows.Err(); err != nil {
