@@ -16,13 +16,13 @@ type ServerConfig struct {
 
 // Обновляет конфиг сервера на основе флагов
 func (cfg *ServerConfig) UpdateFromFlags(flagCfg FlagConfig) {
-	if cfg.BaseURL == "" {
+	if flagCfg.BaseURL != "" {
 		cfg.BaseURL = flagCfg.BaseURL
 	}
-	if cfg.ServerAddress == "" {
+	if flagCfg.ServerAddress != "" {
 		cfg.ServerAddress = flagCfg.ServerAddress
 	}
-	if cfg.SecretKey == "" {
+	if flagCfg.SecretKey != "" {
 		cfg.SecretKey = flagCfg.SecretKey
 	}
 }
