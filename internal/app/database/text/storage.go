@@ -24,16 +24,16 @@ type TextStorage struct {
 }
 
 const (
-	ByUserID = iota
+	ByUserToken = iota
 	ByURLID
 	ByBoth
 )
 
 type TextStorageRequest struct {
-	URLID  string
-	UserID string
-	Size   int
-	How    int
+	URLID     string
+	UserToken string
+	Size      int
+	How       int
 }
 
 // Конструктор нового хранилища URL
@@ -133,7 +133,7 @@ func (s *TextStorage) DeleteNotRequested() {
 // ------ Реализация интерфейса Storage ---------
 
 // Метод для добавления нового URL в файле
-func (s *TextStorage) AddURL(url, urlID, userID string) error {
+func (s *TextStorage) AddURL(url, urlID, userToken string) error {
 	// проблема: мне нужно открывать файл и на чтение, и на добавление
 	// и при этом перемещать указатель то на начало, то на конец
 	// но если открыть в режиме O_APPEND, то поведение Seek "is not specified" -- страшно
@@ -145,7 +145,7 @@ func (s *TextStorage) AddURL(url, urlID, userID string) error {
 	defer file.Close()
 
 	// Попробуем найти запись в хранилище - если есть, то добавлять не надо
-	req := TextStorageRequest{URLID: urlID, UserID: userID, Size: 1, How: ByBoth}
+	req := TextStorageRequest{URLID: urlID, UserToken: userToken, Size: 1, How: ByBoth}
 	result, err := s.FetchFile(req)
 	if err != nil && !errors.Is(err, storage.ErrURLWasNotFound) {
 		return err
@@ -159,7 +159,7 @@ func (s *TextStorage) AddURL(url, urlID, userID string) error {
 	r := storage.Record{
 		URL:         url,
 		URLID:       urlID,
-		UserID:      userID,
+		UserToken:   userToken,
 		Added:       time.Now(),
 		RequestedAt: time.Now(),
 	}
@@ -181,10 +181,10 @@ func (s *TextStorage) FetchMem(request TextStorageRequest) ([]storage.Record, er
 
 	for _, rec := range s.db {
 		matchURLID := request.How == ByURLID && rec.URLID == request.URLID
-		matchUserID := request.How == ByUserID && rec.UserID == request.UserID
+		matchUserToken := request.How == ByUserToken && rec.UserToken == request.UserToken
 		matchBoth := request.How == ByBoth && rec.URLID == request.URLID &&
-			rec.UserID == request.UserID
-		if matchURLID || matchUserID || matchBoth {
+			rec.UserToken == request.UserToken
+		if matchURLID || matchUserToken || matchBoth {
 			rec.RequestedAt = time.Now()
 			s.toUpdate[rec.URL] = time.Now()
 			results = append(results, rec)
@@ -216,10 +216,10 @@ func (s *TextStorage) FetchFile(request TextStorageRequest) ([]storage.Record, e
 			log.Fatal(err)
 		}
 		matchURLID := request.How == ByURLID && rec.URLID == request.URLID
-		matchUserID := request.How == ByUserID && rec.UserID == request.UserID
+		matchUserToken := request.How == ByUserToken && rec.UserToken == request.UserToken
 		matchBoth := request.How == ByBoth && rec.URLID == request.URLID &&
-			rec.UserID == request.UserID
-		if matchURLID || matchUserID || matchBoth {
+			rec.UserToken == request.UserToken
+		if matchURLID || matchUserToken || matchBoth {
 			s.toUpdate[rec.URL] = time.Now()
 			results = append(results, rec)
 		}
@@ -234,8 +234,8 @@ func (s *TextStorage) FetchFile(request TextStorageRequest) ([]storage.Record, e
 }
 
 // Возвращает URL по его ID (сначала смотрит в памяти, потом в файле)
-func (s *TextStorage) GetURLByID(urlID, userID string) (storage.Record, error) {
-	req := TextStorageRequest{URLID: urlID, UserID: userID, Size: 1, How: ByBoth}
+func (s *TextStorage) GetURLByID(urlID, userToken string) (storage.Record, error) {
+	req := TextStorageRequest{URLID: urlID, UserToken: userToken, Size: 1, How: ByBoth}
 	r, err := s.FetchMem(req)
 	if errors.Is(err, storage.ErrURLWasNotFound) {
 		r, err = s.FetchFile(req)
@@ -249,8 +249,8 @@ func (s *TextStorage) GetURLByID(urlID, userID string) (storage.Record, error) {
 
 // Получает URLs по ID пользователя (смотрим только в файле, т.к. его все равно придется
 // смотреть, чтобы быть уверенным, что нашли все)
-func (s *TextStorage) GetURLsByUser(userID string) ([]storage.Record, error) {
-	req := TextStorageRequest{UserID: userID, Size: 0, How: ByUserID}
+func (s *TextStorage) GetURLsByUser(userToken string) ([]storage.Record, error) {
+	req := TextStorageRequest{UserToken: userToken, Size: 0, How: ByUserToken}
 	rFile, err := s.FetchFile(req)
 	if err != nil {
 		return nil, err

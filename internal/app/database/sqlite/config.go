@@ -5,7 +5,8 @@ import (
 )
 
 type SQLiteConfig struct {
-	DBPath string `env:"SQLITE_DB_PATH" envDefault:"db.sqlite3"`
+	DBPath       string `env:"SQLITE_DB_PATH"        envDefault:"db.sqlite3"`
+	ClearOnStart bool   `env:"SQLITE_CLEAR_ON_START" envDefault:"true"`
 }
 
 // Конструктор конфига SQLite на основе переменных окружения

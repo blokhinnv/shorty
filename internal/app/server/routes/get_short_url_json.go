@@ -66,7 +66,7 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 		}
 		// В этом месте уже обязательно должно быть ясно
 		// для кого мы готовим ответ
-		userID, ok := r.Context().Value(middleware.UserIDCtxKey).(string)
+		userToken, ok := r.Context().Value(middleware.UserTokenCtxKey).(string)
 		if !ok {
 			http.Error(
 				w,
@@ -76,7 +76,7 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 			return
 		}
 
-		shortenURL, err := urltrans.GetShortURL(s, longURL, userID, baseURL)
+		shortenURL, err := urltrans.GetShortURL(s, longURL, userToken, baseURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

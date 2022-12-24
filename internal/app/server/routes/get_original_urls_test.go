@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
+	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/blokhinnv/shorty/internal/app/urltrans"
 	"github.com/go-resty/resty/v2"
@@ -16,11 +17,11 @@ import (
 )
 
 // Функция для заполнения хранилища примерами
-func addRecords(t *testing.T, s storage.Storage, userID, baseURL string) []ShortenedURLSAnswer {
+func addRecords(t *testing.T, s storage.Storage, userToken, baseURL string) []ShortenedURLSAnswer {
 	longURLs := []string{"https://sqliteonline.com/", "https://mail.ru/"}
 	answer := make([]ShortenedURLSAnswer, len(longURLs))
 	for idx, longURL := range longURLs {
-		shortURL, err := urltrans.GetShortURL(s, longURL, userID, baseURL)
+		shortURL, err := urltrans.GetShortURL(s, longURL, userToken, baseURL)
 		require.NoError(t, err)
 		answer[idx] = ShortenedURLSAnswer{URL: longURL, URLID: shortURL}
 	}
@@ -38,7 +39,7 @@ func ListOfURLsTestLogic(t *testing.T) {
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
 	reqURL := "http://localhost:8080/api/user/urls"
-	userID := "72988e15f9c8f2aa034ee1f8588299c02073f923d6ab9c68bbffeae65da5d7b0"
+	userToken := "ed7ea688ef57168201bd25eebf28050dac012ab7873da94e726b10dcafb5e29a6a20e80e"
 	var answer []ShortenedURLSAnswer
 	type want struct {
 		statusCode  int
@@ -71,8 +72,8 @@ func ListOfURLsTestLogic(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			client := resty.New()
 			client.SetCookie(&http.Cookie{
-				Name:  "UserID",
-				Value: userID,
+				Name:  middleware.UserTokenCookieName,
+				Value: userToken,
 			})
 			res, err := client.R().Get(reqURL)
 			assert.NoError(t, err)
@@ -88,7 +89,7 @@ func ListOfURLsTestLogic(t *testing.T) {
 			}
 		})
 		// Остальные - по заполненному
-		answer = addRecords(t, s, userID, baseURL)
+		answer = addRecords(t, s, userToken, baseURL)
 	}
 }
 

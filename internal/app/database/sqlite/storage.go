@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	selectByURLIDSQL  = "SELECT url FROM Url WHERE url_id = ? AND user_id = ?"
-	selectByUserIDSQL = "SELECT url, url_id FROM Url WHERE user_id = ?"
-	insertSQL         = "INSERT OR REPLACE INTO Url(url, url_id, user_id) VALUES (?, ?, ?)"
+	selectByURLIDSQL     = "SELECT url FROM Url WHERE url_id = ? AND user_token = ?"
+	selectByUserTokenSQL = "SELECT url, url_id FROM Url WHERE user_token = ?"
+	insertSQL            = "INSERT OR REPLACE INTO Url(url, url_id, user_token) VALUES (?, ?, ?)"
 )
 
 type SQLiteStorage struct {
@@ -26,7 +26,7 @@ type SQLiteStorage struct {
 
 // Конструктор нового хранилища URL
 func NewSQLiteStorage(conf SQLiteConfig) (*SQLiteStorage, error) {
-	InitDB(conf.DBPath)
+	InitDB(conf.DBPath, conf.ClearOnStart)
 	db, err := sql.Open("sqlite3", conf.DBPath)
 	if err != nil {
 		return nil, fmt.Errorf("can't access to DB %s: %v", conf.DBPath, err)
@@ -35,12 +35,12 @@ func NewSQLiteStorage(conf SQLiteConfig) (*SQLiteStorage, error) {
 }
 
 // Метод для добавления нового URL в БД
-func (s *SQLiteStorage) AddURL(url, urlID, userID string) error {
+func (s *SQLiteStorage) AddURL(url, urlID, userToken string) error {
 	stmt, err := s.db.Prepare(insertSQL)
 	if err != nil {
 		return err
 	}
-	_, err = stmt.Exec(url, urlID, userID)
+	_, err = stmt.Exec(url, urlID, userToken)
 	if err != nil {
 		return err
 	}
@@ -49,9 +49,9 @@ func (s *SQLiteStorage) AddURL(url, urlID, userID string) error {
 }
 
 // Возвращает URL по его ID в БД
-func (s *SQLiteStorage) GetURLByID(urlID, userID string) (storage.Record, error) {
+func (s *SQLiteStorage) GetURLByID(urlID, userToken string) (storage.Record, error) {
 	// Получаем строки
-	rows, err := s.db.Query(selectByURLIDSQL, urlID, userID)
+	rows, err := s.db.Query(selectByURLIDSQL, urlID, userToken)
 	if err != nil {
 		return storage.Record{}, err
 	}
@@ -63,7 +63,7 @@ func (s *SQLiteStorage) GetURLByID(urlID, userID string) (storage.Record, error)
 		return storage.Record{}, storage.ErrURLWasNotFound
 	}
 	// Забираем url из первой строки
-	rec := storage.Record{URLID: urlID, UserID: userID}
+	rec := storage.Record{URLID: urlID, UserToken: userToken}
 	if err := rows.Scan(&rec.URL); err != nil {
 		return storage.Record{}, err
 	}
@@ -73,17 +73,17 @@ func (s *SQLiteStorage) GetURLByID(urlID, userID string) (storage.Record, error)
 	return rec, nil
 }
 
-func (s *SQLiteStorage) GetURLsByUser(userID string) ([]storage.Record, error) {
+func (s *SQLiteStorage) GetURLsByUser(userToken string) ([]storage.Record, error) {
 	results := make([]storage.Record, 0)
 
-	rows, err := s.db.Query(selectByUserIDSQL, userID)
+	rows, err := s.db.Query(selectByUserTokenSQL, userToken)
 	if err != nil {
 		return nil, err
 	}
 	// не забудем закрыть объект!
 	defer rows.Close()
 	for rows.Next() {
-		rec := storage.Record{UserID: userID}
+		rec := storage.Record{UserToken: userToken}
 		if err := rows.Scan(&rec.URL, &rec.URLID); err != nil {
 			return nil, err
 		}
@@ -91,6 +91,9 @@ func (s *SQLiteStorage) GetURLsByUser(userID string) ([]storage.Record, error) {
 			return nil, err
 		}
 		results = append(results, rec)
+	}
+	if len(results) == 0 {
+		return nil, storage.ErrURLWasNotFound
 	}
 	return results, nil
 }

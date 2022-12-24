@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
+	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/urltrans"
 	"github.com/go-resty/resty/v2"
 	"github.com/joho/godotenv"
@@ -24,8 +25,8 @@ func LengthenTestLogic(t *testing.T) {
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
-	userID := "72988e15f9c8f2aa034ee1f8588299c02073f923d6ab9c68bbffeae65da5d7b0"
-	shortURL, err := urltrans.GetShortURL(s, longURL, userID, baseURL)
+	userToken := "ed7ea688ef57168201bd25eebf28050dac012ab7873da94e726b10dcafb5e29a6a20e80e"
+	shortURL, err := urltrans.GetShortURL(s, longURL, userToken, baseURL)
 	require.NoError(t, err)
 	type want struct {
 		statusCode  int
@@ -73,6 +74,10 @@ func LengthenTestLogic(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client := resty.New().SetRedirectPolicy(NoRedirectPolicy)
+			client.SetCookie(&http.Cookie{
+				Name:  middleware.UserTokenCookieName,
+				Value: userToken,
+			})
 			res, err := client.R().Get(tt.shortURL)
 			if err != nil {
 				assert.ErrorIs(t, err, errRedirectBlocked)

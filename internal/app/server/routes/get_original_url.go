@@ -29,7 +29,7 @@ func GetOriginalURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 		}
 		// В этом месте уже обязательно должно быть ясно
 		// для кого мы готовим ответ
-		userID, ok := r.Context().Value(middleware.UserIDCtxKey).(string)
+		userToken, ok := r.Context().Value(middleware.UserTokenCtxKey).(string)
 		if !ok {
 			http.Error(
 				w,
@@ -39,7 +39,7 @@ func GetOriginalURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 			return
 		}
 
-		url, err := urltrans.GetOriginalURL(s, urlID, userID)
+		url, err := urltrans.GetOriginalURL(s, urlID, userToken)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNoContent)
 			return

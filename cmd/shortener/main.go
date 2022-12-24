@@ -17,7 +17,12 @@ var flagCfg = config.FlagConfig{}
 func init() {
 	flag.StringVar(&flagCfg.ServerAddress, "a", "", "server address")
 	flag.StringVar(&flagCfg.BaseURL, "b", "", "base url")
-	flag.StringVar(&flagCfg.FileStoragePath, "f", "", "file where the data is stored")
+	flag.StringVar(
+		&flagCfg.FileStoragePath,
+		"f",
+		"",
+		"file where the data is stored",
+	)
 	flag.StringVar(&flagCfg.SecretKey, "k", "", "secret key to sign uid cookies")
 }
 
