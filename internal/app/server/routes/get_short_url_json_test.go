@@ -30,7 +30,8 @@ func ShortenAPITestLogic(t *testing.T) {
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
 	longURLEncoded, err := json.Marshal(RequestJSONBody{longURL})
 	require.NoError(t, err)
-	shortURL, err := urltrans.GetShortURL(s, longURL, baseURL)
+	userID := "72988e15f9c8f2aa034ee1f8588299c02073f923d6ab9c68bbffeae65da5d7b0"
+	shortURL, err := urltrans.GetShortURL(s, longURL, userID, baseURL)
 	require.NoError(t, err)
 	shortURLEncoded, err := json.Marshal(ResponseJSONBody{shortURL})
 	require.NoError(t, err)

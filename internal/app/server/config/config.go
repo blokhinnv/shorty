@@ -11,15 +11,19 @@ import (
 type ServerConfig struct {
 	ServerAddress string `env:"SERVER_ADDRESS" envDefault:"http://localhost:8080" valid:"url"`
 	BaseURL       string `env:"BASE_URL"       envDefault:"http://localhost:8080" valid:"url"`
+	SecretKey     string `env:"SECRET_KEY"     envDefault:"yandex-practicum"`
 }
 
 // Обновляет конфиг сервера на основе флагов
 func (cfg *ServerConfig) UpdateFromFlags(flagCfg FlagConfig) {
-	if flagCfg.BaseURL != "" {
+	if cfg.BaseURL == "" {
 		cfg.BaseURL = flagCfg.BaseURL
 	}
-	if flagCfg.ServerAddress != "" {
+	if cfg.ServerAddress == "" {
 		cfg.ServerAddress = flagCfg.ServerAddress
+	}
+	if cfg.SecretKey == "" {
+		cfg.SecretKey = flagCfg.SecretKey
 	}
 }
 

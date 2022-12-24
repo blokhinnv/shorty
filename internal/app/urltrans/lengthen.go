@@ -6,10 +6,10 @@ import (
 )
 
 // Возвращает запрашиваемый по ID URL, если он существует
-func GetOriginalURL(s storage.Storage, urlID string) (string, error) {
-	url, err := s.GetURLByID(urlID)
+func GetOriginalURL(s storage.Storage, urlID, userID string) (string, error) {
+	rec, err := s.GetURLByID(urlID, userID)
 	if err != nil {
 		return "", err
 	}
-	return url, nil
+	return rec.URL, nil
 }

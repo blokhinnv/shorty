@@ -15,19 +15,25 @@ func init() {
 	log.SetOutput(os.Stdout)
 }
 
-type Record struct {
-	URL         string    `json:"url"          valid:"url,required"`
-	URLID       string    `json:"url_id"       valid:"url,required"`
-	Added       time.Time `json:"added"`
-	RequestedAt time.Time `json:"requested_at"`
-}
-
 type TextStorage struct {
 	filePath  string
 	ttlOnDisk time.Duration
 	ttlInMem  time.Duration
-	db        []Record
+	db        []storage.Record
 	toUpdate  map[string]time.Time
+}
+
+const (
+	ByUserID = iota
+	ByURLID
+	ByBoth
+)
+
+type TextStorageRequest struct {
+	URLID  string
+	UserID string
+	Size   int
+	How    int
 }
 
 // Конструктор нового хранилища URL
@@ -50,77 +56,7 @@ func NewTextStorage(conf TextStorageConfig) (*TextStorage, error) {
 	return s, nil
 }
 
-// Метод для добавления нового URL в файле
-func (s *TextStorage) AddURL(url, urlID string) {
-	// проблема: мне нужно открывать файл и на чтение, и на добавление
-	// и при этом перемещать указатель то на начало, то на конец
-	// но если открыть в режиме O_APPEND, то поведение Seek "is not specified" -- страшно
-	// поэтому приходится открывать и закрывать файл
-	file, err := os.OpenFile(s.filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-	// добавим на диск
-	encoder := json.NewEncoder(file)
-	r := Record{url, urlID, time.Now(), time.Now()}
-	err = encoder.Encode(r)
-	if err != nil {
-		panic(err)
-	}
-	// добавим в память
-	s.db = append(s.db, r)
-	log.Printf("Added %v=>%v to storage\n", url, urlID)
-	// почистим память от старых запросов
-	s.DeleteNotRequested()
-}
-
-// Удаляет из памяти те URL, которые запрашивались давно
-func (s *TextStorage) DeleteNotRequested() {
-	filtered := make([]Record, 0)
-	for _, rec := range s.db {
-		if time.Since(rec.RequestedAt) < s.ttlInMem {
-			filtered = append(filtered, rec)
-		} else {
-			log.Printf("Remove %+v from memory\n", rec)
-		}
-	}
-	s.db = filtered
-}
-
-// Ищет в памяти URL по urlID
-func (s *TextStorage) FindInMem(urlID string) (Record, error) {
-	for _, rec := range s.db {
-		if rec.URLID == urlID {
-			rec.RequestedAt = time.Now()
-			s.toUpdate[rec.URL] = time.Now()
-			return rec, nil
-		}
-	}
-	return Record{}, storage.ErrURLWasNotFound
-}
-
-// Ищем в файле URL по urlID
-func (s *TextStorage) FindInFile(urlID string) (Record, error) {
-	file, err := os.OpenFile(s.filePath, os.O_RDONLY, 0777)
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-	var r Record
-	decoder := json.NewDecoder(file)
-	for decoder.More() {
-		err = decoder.Decode(&r)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if r.URLID == urlID {
-			s.toUpdate[r.URL] = time.Now()
-			return r, nil
-		}
-	}
-	return Record{}, storage.ErrURLWasNotFound
-}
+// -------- Логика для обновления хранилища ----------
 
 // Обновляет файл хранилища: удаляет старые URL и обновляет информацию
 // о последнем запросе
@@ -133,8 +69,8 @@ func (s *TextStorage) UpdateStorage() {
 	}
 
 	// читаем с диска, выбрасываем старье
-	newDB := make([]Record, 0)
-	var r Record
+	newDB := make([]storage.Record, 0)
+	var r storage.Record
 	decoder := json.NewDecoder(file)
 	for decoder.More() {
 		err = decoder.Decode(&r)
@@ -171,6 +107,7 @@ func (s *TextStorage) UpdateStorage() {
 	s.db = newDB
 }
 
+// Запускает обновление файла по таймеру
 func (s *TextStorage) registerUpdateStorage() {
 	ticker := time.NewTicker(s.ttlOnDisk)
 	go func() {
@@ -180,19 +117,147 @@ func (s *TextStorage) registerUpdateStorage() {
 	}()
 }
 
-// Возвращает URL по его ID (сначала смотрит в памяти, потом в файле)
-func (s *TextStorage) GetURLByID(urlID string) (string, error) {
-	r, err := s.FindInMem(urlID)
-	if errors.Is(err, storage.ErrURLWasNotFound) {
-		r, err = s.FindInFile(urlID)
+// Удаляет из памяти те URL, которые запрашивались давно
+func (s *TextStorage) DeleteNotRequested() {
+	filtered := make([]storage.Record, 0)
+	for _, rec := range s.db {
+		if time.Since(rec.RequestedAt) < s.ttlInMem {
+			filtered = append(filtered, rec)
+		} else {
+			log.Printf("Remove %+v from memory\n", rec)
+		}
 	}
-	if err != nil {
-		return "", storage.ErrURLWasNotFound
-	}
-
-	return r.URL, nil
+	s.db = filtered
 }
 
-// Закрывает соединение с SQLite
+// ------ Реализация интерфейса Storage ---------
+
+// Метод для добавления нового URL в файле
+func (s *TextStorage) AddURL(url, urlID, userID string) error {
+	// проблема: мне нужно открывать файл и на чтение, и на добавление
+	// и при этом перемещать указатель то на начало, то на конец
+	// но если открыть в режиме O_APPEND, то поведение Seek "is not specified" -- страшно
+	// поэтому приходится открывать и закрывать файл
+	file, err := os.OpenFile(s.filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Попробуем найти запись в хранилище - если есть, то добавлять не надо
+	req := TextStorageRequest{URLID: urlID, UserID: userID, Size: 1, How: ByBoth}
+	result, err := s.FetchFile(req)
+	if err != nil && !errors.Is(err, storage.ErrURLWasNotFound) {
+		return err
+	}
+	if len(result) > 0 {
+		return nil
+	}
+
+	// добавим на диск
+	encoder := json.NewEncoder(file)
+	r := storage.Record{
+		URL:         url,
+		URLID:       urlID,
+		UserID:      userID,
+		Added:       time.Now(),
+		RequestedAt: time.Now(),
+	}
+	err = encoder.Encode(r)
+	if err != nil {
+		return err
+	}
+	// добавим в память
+	s.db = append(s.db, r)
+	log.Printf("Added %v=>%v to storage\n", url, urlID)
+	// почистим память от старых запросов
+	s.DeleteNotRequested()
+	return nil
+}
+
+// Ищет в памяти URL по urlID
+func (s *TextStorage) FetchMem(request TextStorageRequest) ([]storage.Record, error) {
+	results := make([]storage.Record, 0)
+
+	for _, rec := range s.db {
+		matchURLID := request.How == ByURLID && rec.URLID == request.URLID
+		matchUserID := request.How == ByUserID && rec.UserID == request.UserID
+		matchBoth := request.How == ByBoth && rec.URLID == request.URLID &&
+			rec.UserID == request.UserID
+		if matchURLID || matchUserID || matchBoth {
+			rec.RequestedAt = time.Now()
+			s.toUpdate[rec.URL] = time.Now()
+			results = append(results, rec)
+		}
+		if request.Size > 0 && len(results) == request.Size {
+			return results, nil
+		}
+	}
+	if len(results) == 0 {
+		return results, storage.ErrURLWasNotFound
+	}
+	return results, nil
+}
+
+// Ищем в файле URL по urlID
+func (s *TextStorage) FetchFile(request TextStorageRequest) ([]storage.Record, error) {
+	results := make([]storage.Record, 0)
+	file, err := os.OpenFile(s.filePath, os.O_RDONLY, 0777)
+	if err != nil {
+		return results, err
+	}
+	defer file.Close()
+
+	var rec storage.Record
+	decoder := json.NewDecoder(file)
+	for decoder.More() {
+		err = decoder.Decode(&rec)
+		if err != nil {
+			log.Fatal(err)
+		}
+		matchURLID := request.How == ByURLID && rec.URLID == request.URLID
+		matchUserID := request.How == ByUserID && rec.UserID == request.UserID
+		matchBoth := request.How == ByBoth && rec.URLID == request.URLID &&
+			rec.UserID == request.UserID
+		if matchURLID || matchUserID || matchBoth {
+			s.toUpdate[rec.URL] = time.Now()
+			results = append(results, rec)
+		}
+		if request.Size > 0 && len(results) == request.Size {
+			return results, nil
+		}
+	}
+	if len(results) == 0 {
+		return results, storage.ErrURLWasNotFound
+	}
+	return results, nil
+}
+
+// Возвращает URL по его ID (сначала смотрит в памяти, потом в файле)
+func (s *TextStorage) GetURLByID(urlID, userID string) (storage.Record, error) {
+	req := TextStorageRequest{URLID: urlID, UserID: userID, Size: 1, How: ByBoth}
+	r, err := s.FetchMem(req)
+	if errors.Is(err, storage.ErrURLWasNotFound) {
+		r, err = s.FetchFile(req)
+	}
+	if err != nil {
+		return storage.Record{}, storage.ErrURLWasNotFound
+	}
+
+	return r[0], nil
+}
+
+// Получает URLs по ID пользователя (смотрим только в файле, т.к. его все равно придется
+// смотреть, чтобы быть уверенным, что нашли все)
+func (s *TextStorage) GetURLsByUser(userID string) ([]storage.Record, error) {
+	req := TextStorageRequest{UserID: userID, Size: 0, How: ByUserID}
+	rFile, err := s.FetchFile(req)
+	if err != nil {
+		return nil, err
+	}
+	return rFile, nil
+}
+
+// Закрывает соединение с хранилищем
 func (s *TextStorage) Close() {
 }

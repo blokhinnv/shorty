@@ -15,10 +15,9 @@ import (
 )
 
 const (
-	selectByIDSQL    = "SELECT url FROM Url WHERE url_id = ?"
-	selectByURLSQL   = "SELECT url_id FROM Url WHERE url = ?"
-	insertSQL        = "INSERT OR REPLACE INTO Url(url, url_id) VALUES (?, ?)"
-	maxEncodingIDSQL = "SELECT COALESCE(MAX(encoding_id), 0) FROM Url "
+	selectByURLIDSQL  = "SELECT url FROM Url WHERE url_id = ? AND user_id = ?"
+	selectByUserIDSQL = "SELECT url, url_id FROM Url WHERE user_id = ?"
+	insertSQL         = "INSERT OR REPLACE INTO Url(url, url_id, user_id) VALUES (?, ?, ?)"
 )
 
 type SQLiteStorage struct {
@@ -36,41 +35,61 @@ func NewSQLiteStorage(conf SQLiteConfig) (*SQLiteStorage, error) {
 }
 
 // Метод для добавления нового URL в БД
-func (s *SQLiteStorage) AddURL(url, urlID string) {
+func (s *SQLiteStorage) AddURL(url, urlID, userID string) error {
 	stmt, err := s.db.Prepare(insertSQL)
 	if err != nil {
-		panic("can't prepare insert query\n")
+		return err
 	}
-	_, err = stmt.Exec(url, urlID)
+	_, err = stmt.Exec(url, urlID, userID)
 	if err != nil {
-		panic("can't execute insert query\n")
+		return err
 	}
 	log.Printf("Added %v=>%v to storage\n", url, urlID)
+	return nil
 }
 
 // Возвращает URL по его ID в БД
-func (s *SQLiteStorage) GetURLByID(urlID string) (string, error) {
+func (s *SQLiteStorage) GetURLByID(urlID, userID string) (storage.Record, error) {
 	// Получаем строки
-	rows, err := s.db.Query(selectByIDSQL, urlID)
+	rows, err := s.db.Query(selectByURLIDSQL, urlID, userID)
 	if err != nil {
-		return "", err
+		return storage.Record{}, err
 	}
 	// не забудем закрыть объект!
 	defer rows.Close()
 
 	// Next подготовит результат и вернет True, если строки есть
 	if !rows.Next() {
-		return "", storage.ErrURLWasNotFound
+		return storage.Record{}, storage.ErrURLWasNotFound
 	}
 	// Забираем url из первой строки
-	var url string
-	if err := rows.Scan(&url); err != nil {
-		return "", err
+	rec := storage.Record{URLID: urlID, UserID: userID}
+	if err := rows.Scan(&rec.URL); err != nil {
+		return storage.Record{}, err
 	}
 	if err := rows.Err(); err != nil {
-		return "", err
+		return storage.Record{}, err
 	}
-	return url, nil
+	return rec, nil
+}
+
+func (s *SQLiteStorage) GetURLsByUser(userID string) ([]storage.Record, error) {
+	results := make([]storage.Record, 0)
+
+	rows, err := s.db.Query(selectByUserIDSQL, userID)
+	if err != nil {
+		return nil, err
+	}
+	// не забудем закрыть объект!
+	defer rows.Close()
+	for rows.Next() {
+		rec := storage.Record{UserID: userID}
+		if err := rows.Scan(&rec.URL, &rec.URLID); err != nil {
+			return nil, err
+		}
+		results = append(results, rec)
+	}
+	return results, nil
 }
 
 // Закрывает соединение с SQLite

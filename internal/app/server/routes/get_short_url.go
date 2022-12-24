@@ -41,8 +41,19 @@ func GetShortURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.R
 			)
 			return
 		}
+		// В этом месте уже обязательно должно быть ясно
+		// для кого мы готовим ответ
+		userID, ok := r.Context().Value(middleware.UserIDCtxKey).(string)
+		if !ok {
+			http.Error(
+				w,
+				"no user id provided",
+				http.StatusInternalServerError,
+			)
+			return
+		}
 
-		shortenURL, err := urltrans.GetShortURL(s, longURL, baseURL)
+		shortenURL, err := urltrans.GetShortURL(s, longURL, userID, baseURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

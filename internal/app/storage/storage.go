@@ -8,9 +8,11 @@ import (
 // Интерфейс для хранилища
 type Storage interface {
 	// добавляет URL в хранилище
-	AddURL(url, urlID string)
-	// Получает URL по ID
-	GetURLByID(id string) (string, error)
+	AddURL(url, urlID, userID string) error
+	// Получает URL по ID+userID
+	GetURLByID(urlID, userID string) (Record, error)
+	// Получает URLs по ID пользователя
+	GetURLsByUser(userID string) ([]Record, error)
 	// Закрывает хранилище
 	Close()
 }

@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 
-	redis "github.com/blokhinnv/shorty/internal/app/database/redis"
 	sqlite "github.com/blokhinnv/shorty/internal/app/database/sqlite"
 	text "github.com/blokhinnv/shorty/internal/app/database/text"
 	"github.com/blokhinnv/shorty/internal/app/env"
@@ -15,7 +14,6 @@ import (
 
 const (
 	SQLite = "sqlite"
-	Redis  = "redis"
 	Text   = "text"
 )
 
@@ -40,10 +38,6 @@ func NewDBStorage(flagCfg config.FlagConfig) storage.Storage {
 		sqliteConfig := sqlite.GetSQLiteConfig()
 		log.Printf("Starting SQLiteStorage with config %+v\n", sqliteConfig)
 		storage, err = sqlite.NewSQLiteStorage(sqliteConfig)
-	case Redis:
-		redisConfig := redis.GetRedisConfig()
-		log.Printf("Starting RedisStorage with config %+v\n", redisConfig)
-		storage, err = redis.NewRedisStorage(redisConfig)
 	case Text:
 		textStorageConfig := text.GetTextStorageConfig(flagCfg)
 		log.Printf("Starting TextStorage with config %+v\n", textStorageConfig)
