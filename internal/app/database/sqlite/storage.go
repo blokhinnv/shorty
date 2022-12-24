@@ -87,6 +87,9 @@ func (s *SQLiteStorage) GetURLsByUser(userID string) ([]storage.Record, error) {
 		if err := rows.Scan(&rec.URL, &rec.URLID); err != nil {
 			return nil, err
 		}
+		if err := rows.Err(); err != nil {
+			return nil, err
+		}
 		results = append(results, rec)
 	}
 	return results, nil
