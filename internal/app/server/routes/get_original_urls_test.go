@@ -34,11 +34,11 @@ func addRecords(
 }
 
 // Тесты для GET-запроса
-func ListOfURLsTestLogic(t *testing.T, testCfg TestConfig) {
-	s := db.NewDBStorage(testCfg.serverCfg)
+func ListOfURLsTestLogic(t *testing.T) {
+	s := db.NewDBStorage(flagCfg)
 	defer s.Close()
-	r := NewRouter(s, testCfg.serverCfg)
-	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
+	r := NewRouter(s, serverCfg)
+	ts := NewServerWithPort(r, port)
 	defer ts.Close()
 
 	// Заготовка под тест: создаем хранилище, сокращаем
@@ -79,7 +79,6 @@ func ListOfURLsTestLogic(t *testing.T, testCfg TestConfig) {
 				Name:  middleware.UserTokenCookieName,
 				Value: userToken,
 			})
-
 			res, err := client.R().Get(reqURL)
 			assert.NoError(t, err)
 
@@ -94,21 +93,16 @@ func ListOfURLsTestLogic(t *testing.T, testCfg TestConfig) {
 			}
 		})
 		// Остальные - по заполненному
-		answer = addRecords(t, s, userID, testCfg.baseURL)
+		answer = addRecords(t, s, userID, baseURL)
 	}
 }
 
 func Test_ListOfURLs_SQLite(t *testing.T) {
 	godotenv.Load("test_sqlite.env")
-	ListOfURLsTestLogic(t, NewTestConfig())
+	ListOfURLsTestLogic(t)
 }
 
-func Test_ListOfURLs_Text(t *testing.T) {
+func Test_ListOfURLs_Test(t *testing.T) {
 	godotenv.Load("test_text.env")
-	ListOfURLsTestLogic(t, NewTestConfig())
-}
-
-func Test_ListOfURLs_Postgre(t *testing.T) {
-	godotenv.Load("test_postgre.env")
-	ListOfURLsTestLogic(t, NewTestConfig())
+	ListOfURLsTestLogic(t)
 }

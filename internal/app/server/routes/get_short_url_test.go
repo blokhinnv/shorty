@@ -16,19 +16,19 @@ import (
 )
 
 // Тесты для POST-запроса
-func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
+func ShortenTestLogic(t *testing.T) {
 	// Если стартануть сервер cmd/shortener/main,
 	// то будет использоваться его роутинг даже в тестах :о
-	s := db.NewDBStorage(testCfg.serverCfg)
+	s := db.NewDBStorage(flagCfg)
 	defer s.Close()
-	r := NewRouter(s, testCfg.serverCfg)
+	r := NewRouter(s, serverCfg)
 
-	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
+	ts := NewServerWithPort(r, port)
 	defer ts.Close()
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
-	shortURL, err := urltrans.GetShortURL(s, longURL, userID, testCfg.baseURL)
+	shortURL, err := urltrans.GetShortURL(s, longURL, userID, baseURL)
 	require.NoError(t, err)
 
 	type want struct {
@@ -108,15 +108,10 @@ func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
 
 func Test_Shorten_SQLite(t *testing.T) {
 	godotenv.Load("test_sqlite.env")
-	ShortenTestLogic(t, NewTestConfig())
+	ShortenTestLogic(t)
 }
 
 func Test_Shorten_Text(t *testing.T) {
 	godotenv.Load("test_text.env")
-	ShortenTestLogic(t, NewTestConfig())
-}
-
-func Test_Shorten_Postgre(t *testing.T) {
-	godotenv.Load("test_postgre.env")
-	ShortenTestLogic(t, NewTestConfig())
+	ShortenTestLogic(t)
 }
