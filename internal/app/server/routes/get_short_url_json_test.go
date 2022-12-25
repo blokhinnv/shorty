@@ -17,13 +17,13 @@ import (
 )
 
 // Тесты для нового POST-запроса
-func ShortenAPITestLogic(t *testing.T) {
+func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
 	// Если стартануть сервер cmd/shortener/main,
 	// то будет использоваться его роутинг даже в тестах :о
-	s := db.NewDBStorage(flagCfg)
+	s := db.NewDBStorage(testCfg.serverCfg)
 	defer s.Close()
-	r := NewRouter(s, serverCfg)
-	ts := NewServerWithPort(r, port)
+	r := NewRouter(s, testCfg.serverCfg)
+	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
 	defer ts.Close()
 
 	// Заготовка под тест: создаем хранилище, сокращаем
@@ -31,7 +31,7 @@ func ShortenAPITestLogic(t *testing.T) {
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
 	longURLEncoded, err := json.Marshal(RequestJSONBody{longURL})
 	require.NoError(t, err)
-	shortURL, err := urltrans.GetShortURL(s, longURL, userID, baseURL)
+	shortURL, err := urltrans.GetShortURL(s, longURL, userID, testCfg.baseURL)
 	require.NoError(t, err)
 	shortURLEncoded, err := json.Marshal(ResponseJSONBody{shortURL})
 	require.NoError(t, err)
@@ -130,10 +130,15 @@ func ShortenAPITestLogic(t *testing.T) {
 
 func Test_ShortenAPI_SQLite(t *testing.T) {
 	godotenv.Load("test_sqlite.env")
-	ShortenAPITestLogic(t)
+	ShortenAPITestLogic(t, NewTestConfig())
 }
 
 func Test_ShortenAPI_Text(t *testing.T) {
 	godotenv.Load("test_text.env")
-	ShortenAPITestLogic(t)
+	ShortenAPITestLogic(t, NewTestConfig())
+}
+
+func Test_ShortenAPI_Postgre(t *testing.T) {
+	godotenv.Load("test_postgre.env")
+	ShortenAPITestLogic(t, NewTestConfig())
 }

@@ -41,5 +41,6 @@ func main() {
 	// флаги надо собрать в одном месте на старте
 	// и прокидывать через кучу слоев....
 	flag.Parse()
-	s.RunServer(flagCfg)
+	serverCfg := config.NewServerConfig(flagCfg)
+	s.RunServer(serverCfg)
 }
