@@ -108,7 +108,7 @@ func Test_ListOfURLs_Text(t *testing.T) {
 	ListOfURLsTestLogic(t, NewTestConfig())
 }
 
-func Test_ListOfURLs_Postgre(t *testing.T) {
-	godotenv.Load("test_postgre.env")
-	ListOfURLsTestLogic(t, NewTestConfig())
-}
+// func Test_ListOfURLs_Postgre(t *testing.T) {
+// 	godotenv.Load("test_postgre.env")
+// 	ListOfURLsTestLogic(t, NewTestConfig())
+// }
