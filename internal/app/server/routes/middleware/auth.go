@@ -72,6 +72,7 @@ func (m *Auth) verifyCookie(w http.ResponseWriter, cookie *http.Cookie) bool {
 	data, err := hex.DecodeString(cookie.Value)
 	if err != nil {
 		http.Error(w, "server error", http.StatusInternalServerError)
+		return false
 	}
 	// первые 4 байта - ID пользователя
 	// Получаем для них подпись с секретным ключом сервера
@@ -85,8 +86,9 @@ func (m *Auth) extractID(w http.ResponseWriter, cookie *http.Cookie) uint32 {
 	data, err := hex.DecodeString(cookie.Value)
 	if err != nil {
 		http.Error(w, "server error", http.StatusInternalServerError)
+		return 0
 	}
-	id := binary.BigEndian.Uint32(data[:4])
+	id := binary.BigEndian.Uint32(data[:nBytesForID])
 	return id
 }
 

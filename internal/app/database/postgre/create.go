@@ -15,7 +15,7 @@ CREATE TABLE Url(
 	encoding_id SERIAL PRIMARY KEY,
 	url VARCHAR NOT NULL,
 	url_id VARCHAR NOT NULL,
-	user_id INT NOT NULL,
+	user_id BIGINT NOT NULL,
 	added TIMESTAMP,
 	requested_at TIMESTAMP
 );
