@@ -23,5 +23,6 @@ func NewRouter(storage storage.Storage, cfg config.ServerConfig) chi.Router {
 		r.Post("/api/shorten", GetShortURLAPIHandlerFunc(storage))
 		r.Get("/api/user/urls", GetOriginalURLsHandlerFunc(storage))
 	})
+	r.Get("/ping", PingHandlerFunc(storage))
 	return r
 }

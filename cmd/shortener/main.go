@@ -24,6 +24,7 @@ func init() {
 		"file where the data is stored",
 	)
 	flag.StringVar(&flagCfg.SecretKey, "k", "", "secret key to sign uid cookies")
+	flag.StringVar(&flagCfg.DatabaseDSN, "d", "", "postgre connect string")
 }
 
 func main() {

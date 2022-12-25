@@ -102,3 +102,7 @@ func (s *SQLiteStorage) GetURLsByUser(userID uint32) ([]storage.Record, error) {
 func (s *SQLiteStorage) Close() {
 	s.db.Close()
 }
+
+func (s *SQLiteStorage) Ping() bool {
+	return s.db.Ping() == nil
+}

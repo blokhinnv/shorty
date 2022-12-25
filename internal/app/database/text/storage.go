@@ -261,3 +261,8 @@ func (s *TextStorage) GetURLsByUser(userID uint32) ([]storage.Record, error) {
 // Закрывает соединение с хранилищем
 func (s *TextStorage) Close() {
 }
+
+func (s *TextStorage) Ping() bool {
+	_, err := os.Stat(s.filePath)
+	return err == nil
+}

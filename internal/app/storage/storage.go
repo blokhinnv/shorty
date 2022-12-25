@@ -13,6 +13,8 @@ type Storage interface {
 	GetURLByID(urlID string) (Record, error)
 	// Получает URLs по токену пользователя
 	GetURLsByUser(userID uint32) ([]Record, error)
+	// Проверяет соединение с хранилищем
+	Ping() bool
 	// Закрывает хранилище
 	Close()
 }

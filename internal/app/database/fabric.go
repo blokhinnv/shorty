@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	postgre "github.com/blokhinnv/shorty/internal/app/database/postgre"
 	sqlite "github.com/blokhinnv/shorty/internal/app/database/sqlite"
 	text "github.com/blokhinnv/shorty/internal/app/database/text"
 	"github.com/blokhinnv/shorty/internal/app/env"
@@ -13,8 +14,9 @@ import (
 )
 
 const (
-	SQLite = "sqlite"
-	Text   = "text"
+	SQLite  = "sqlite"
+	Postgre = "postgre"
+	Text    = "text"
 )
 
 const (
@@ -38,6 +40,10 @@ func NewDBStorage(flagCfg config.FlagConfig) storage.Storage {
 		sqliteConfig := sqlite.GetSQLiteConfig()
 		log.Printf("Starting SQLiteStorage with config %+v\n", sqliteConfig)
 		storage, err = sqlite.NewSQLiteStorage(sqliteConfig)
+	case Postgre:
+		postgreConfig := postgre.GetPostgreConfig(flagCfg)
+		log.Printf("Starting PostgreStorage with config %+v\n", postgreConfig)
+		storage, err = postgre.NewPostgreStorage(postgreConfig)
 	case Text:
 		textStorageConfig := text.GetTextStorageConfig(flagCfg)
 		log.Printf("Starting TextStorage with config %+v\n", textStorageConfig)

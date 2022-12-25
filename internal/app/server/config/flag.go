@@ -5,4 +5,5 @@ type FlagConfig struct {
 	BaseURL         string
 	FileStoragePath string
 	SecretKey       string
+	DatabaseDSN     string
 }
