@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -58,7 +59,15 @@ func GetShortURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.R
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		s.AddURL(r.Context(), longURL, shortURLID, userID)
+		err = s.AddURL(r.Context(), longURL, shortURLID, userID)
+		if errors.Is(err, storage.ErrUniqueViolation) {
+			http.Error(
+				w,
+				err.Error(),
+				http.StatusConflict,
+			)
+			return
+		}
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(shortenURL))

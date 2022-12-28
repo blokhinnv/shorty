@@ -18,8 +18,11 @@ type Storage interface {
 	GetURLsByUser(ctx context.Context, userID uint32) ([]Record, error)
 	// Проверяет соединение с хранилищем
 	Ping(ctx context.Context) bool
+	// Очищает хранилище
+	Clear(ctx context.Context) error
 	// Закрывает хранилище
 	Close(ctx context.Context)
 }
 
 var ErrURLWasNotFound = errors.New("requested URL was not found")
+var ErrUniqueViolation = errors.New("duplicate key value violates unique constraint")

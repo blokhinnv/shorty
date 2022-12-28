@@ -3,17 +3,21 @@ package database
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 const (
-	selectByURLIDSQL  = "SELECT url, user_id FROM Url WHERE url_id = $1"
-	selectByUserIDSQL = "SELECT url, url_id FROM Url WHERE user_id = $1"
-	insertSQL         = "INSERT INTO Url(url, url_id, user_id) VALUES ($1, $2, $3) ON CONFLICT (url, url_id) DO NOTHING;"
+	selectByURLIDSQL    = "SELECT url, user_id FROM Url WHERE url_id = $1"
+	selectByUserIDSQL   = "SELECT url, url_id FROM Url WHERE user_id = $1"
+	insertSQL           = "INSERT INTO Url(url, url_id, user_id) VALUES ($1, $2, $3);"
+	uniqueViolationCode = "23505"
+	clearSQL            = "DELETE FROM Url"
 )
 
 type PostgreStorage struct {
@@ -36,7 +40,18 @@ func NewPostgreStorage(conf PostgreConfig) (*PostgreStorage, error) {
 func (s *PostgreStorage) AddURL(ctx context.Context, url, urlID string, userID uint32) error {
 	_, err := s.conn.Exec(ctx, insertSQL, url, urlID, userID)
 	if err != nil {
-		log.Fatalf("Error while adding URL: %v", err)
+		log.Printf("Error while adding URL: %v", err)
+		if pgerr, ok := err.(*pgconn.PgError); ok {
+			if pgerr.Code == uniqueViolationCode {
+				return fmt.Errorf(
+					"%w: url=%v, urlID=%v, userID=%v",
+					storage.ErrUniqueViolation,
+					url,
+					urlID,
+					userID,
+				)
+			}
+		}
 		return err
 	}
 	log.Printf("Added %v=>%v to storage\n", url, urlID)
@@ -111,6 +126,17 @@ func (s *PostgreStorage) AddURLBatch(
 		// шаг 3 — указываем, что каждая запись будет добавлена в транзакцию
 		if _, err := tx.Exec(ctx, insertSQL, url, urlID, userID); err != nil {
 			log.Println("unable to add row: ", err)
+			if pgerr, ok := err.(*pgconn.PgError); ok {
+				if pgerr.Code == uniqueViolationCode {
+					return fmt.Errorf(
+						"%w: url=%v, urlID=%v, userID=%v",
+						storage.ErrUniqueViolation,
+						url,
+						urlID,
+						userID,
+					)
+				}
+			}
 			if err = tx.Rollback(ctx); err != nil {
 				log.Fatalf("update drivers: unable to rollback: %v", err)
 			}
@@ -132,4 +158,10 @@ func (s *PostgreStorage) Close(ctx context.Context) {
 // Проверяет соединение с хранилищем
 func (s *PostgreStorage) Ping(ctx context.Context) bool {
 	return s.conn.Ping(ctx) == nil
+}
+
+// Очищает хранилище
+func (s *PostgreStorage) Clear(ctx context.Context) error {
+	_, err := s.conn.Exec(ctx, clearSQL)
+	return err
 }

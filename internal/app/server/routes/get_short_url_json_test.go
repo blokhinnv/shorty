@@ -32,7 +32,7 @@ func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
 	longURLEncoded := []byte(fmt.Sprintf(`{"url":"%v"}`, longURL))
 	shortURLID, shortURL, err := shorten.GetShortURL(s, longURL, userID, testCfg.baseURL)
 	require.NoError(t, err)
-	s.AddURL(context.Background(), longURL, shortURLID, userID)
+
 	shortURLEncoded := []byte(fmt.Sprintf(`{"result":"%v"}`, shortURL))
 	require.NoError(t, err)
 
@@ -52,6 +52,7 @@ func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
 		reqBody        []byte
 		reqContentType string
 		want           want
+		clearAfter     bool
 	}{
 		{
 			// тело запроса = url для сокращения
@@ -63,6 +64,7 @@ func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
 				result:      shortURLEncoded,
 				contentType: "application/json; charset=utf-8",
 			},
+			clearAfter: false,
 		},
 		{
 			// некорректный URL
@@ -77,6 +79,7 @@ func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
 				)),
 				contentType: "text/plain; charset=utf-8",
 			},
+			clearAfter: false,
 		},
 		{
 			// пустое тело
@@ -88,6 +91,7 @@ func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
 				result:      []byte("Body is not valid: url: non zero value required"),
 				contentType: "text/plain; charset=utf-8",
 			},
+			clearAfter: false,
 		},
 		{
 			// некорректный заголовок
@@ -99,6 +103,26 @@ func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
 				result:      []byte(fmt.Sprintf("Incorrent content-type : %v", "text/html")),
 				contentType: "text/plain; charset=utf-8",
 			},
+			clearAfter: false,
+		},
+		{
+			// повторный запрос с тем же URL
+			name:           "test_duplicated_body",
+			reqBody:        longURLEncoded,
+			reqContentType: "application/json",
+			want: want{
+				statusCode: http.StatusConflict,
+				result: []byte(
+					fmt.Sprintf(
+						`duplicate key value violates unique constraint: url=%v, urlID=%v, userID=%v`,
+						longURL,
+						shortURLID,
+						userID,
+					),
+				),
+				contentType: "text/plain; charset=utf-8",
+			},
+			clearAfter: false,
 		},
 	}
 
@@ -124,8 +148,12 @@ func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
 				string(tt.want.result),
 				IPToLocalhost(strings.TrimSpace(string(resShortURL))),
 			)
+			if tt.clearAfter {
+				s.Clear(context.Background())
+			}
 		})
 	}
+
 }
 
 func Test_ShortenAPI_SQLite(t *testing.T) {

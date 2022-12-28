@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -28,10 +29,11 @@ type TextStorage struct {
 const (
 	ByUserID = iota
 	ByURLID
-	ByBoth
+	ByURL
 )
 
 type TextStorageRequest struct {
+	URL    string
 	URLID  string
 	UserID uint32
 	Size   int
@@ -147,13 +149,20 @@ func (s *TextStorage) AddURL(ctx context.Context, url, urlID string, userID uint
 	defer file.Close()
 
 	// Попробуем найти запись в хранилище - если есть, то добавлять не надо
-	req := TextStorageRequest{URLID: urlID, UserID: userID, Size: 1, How: ByBoth}
+	req := TextStorageRequest{URL: url, Size: 1, How: ByURL}
 	result, err := s.FetchFile(req)
 	if err != nil && !errors.Is(err, storage.ErrURLWasNotFound) {
 		return err
 	}
+	// если нашли такую запись, вернем ошибку
 	if len(result) > 0 {
-		return nil
+		return fmt.Errorf(
+			"%w: url=%v, urlID=%v, userID=%v",
+			storage.ErrUniqueViolation,
+			url,
+			urlID,
+			userID,
+		)
 	}
 
 	// добавим на диск
@@ -184,9 +193,8 @@ func (s *TextStorage) FetchMem(request TextStorageRequest) ([]storage.Record, er
 	for _, rec := range s.db {
 		matchURLID := request.How == ByURLID && rec.URLID == request.URLID
 		matchUserID := request.How == ByUserID && rec.UserID == request.UserID
-		matchBoth := request.How == ByBoth && rec.URLID == request.URLID &&
-			rec.UserID == request.UserID
-		if matchURLID || matchUserID || matchBoth {
+		matchURL := request.How == ByURL && rec.URL == request.URL
+		if matchURLID || matchUserID || matchURL {
 			rec.RequestedAt = time.Now()
 			s.toUpdate[rec.URL] = time.Now()
 			results = append(results, rec)
@@ -219,9 +227,8 @@ func (s *TextStorage) FetchFile(request TextStorageRequest) ([]storage.Record, e
 		}
 		matchURLID := request.How == ByURLID && rec.URLID == request.URLID
 		matchUserID := request.How == ByUserID && rec.UserID == request.UserID
-		matchBoth := request.How == ByBoth && rec.URLID == request.URLID &&
-			rec.UserID == request.UserID
-		if matchURLID || matchUserID || matchBoth {
+		matchURL := request.How == ByURL && rec.URL == request.URL
+		if matchURLID || matchUserID || matchURL {
 			s.toUpdate[rec.URL] = time.Now()
 			results = append(results, rec)
 		}
@@ -276,26 +283,34 @@ func (s *TextStorage) AddURLBatch(
 	encoder := json.NewEncoder(buf)
 
 	for url, urlID := range urlIDs {
-		req := TextStorageRequest{URLID: urlID, UserID: userID, Size: 1, How: ByBoth}
+		req := TextStorageRequest{URL: url, Size: 1, How: ByURL}
 		result, err := s.FetchFile(req)
 		if err != nil && !errors.Is(err, storage.ErrURLWasNotFound) {
 			return err
 		}
-		if len(result) == 0 {
-			r := storage.Record{
-				URL:         url,
-				URLID:       urlID,
-				UserID:      userID,
-				Added:       time.Now(),
-				RequestedAt: time.Now(),
-			}
-			s.db = append(s.db, r)
-			err = encoder.Encode(r)
-			if err != nil {
-				return err
-			}
-			log.Printf("Added %v=>%v to storage\n", url, urlID)
+		// если нашли хотя бы одну запись, вернем ошибку
+		if len(result) > 0 {
+			return fmt.Errorf(
+				"%w: url=%v, urlID=%v, userID=%v",
+				storage.ErrUniqueViolation,
+				url,
+				urlID,
+				userID,
+			)
 		}
+		r := storage.Record{
+			URL:         url,
+			URLID:       urlID,
+			UserID:      userID,
+			Added:       time.Now(),
+			RequestedAt: time.Now(),
+		}
+		s.db = append(s.db, r)
+		err = encoder.Encode(r)
+		if err != nil {
+			return err
+		}
+		log.Printf("Added %v=>%v to storage\n", url, urlID)
 	}
 	// запишем в файл
 	_, err = file.Write(buf.Bytes())
@@ -314,4 +329,11 @@ func (s *TextStorage) Close(ctx context.Context) {
 func (s *TextStorage) Ping(ctx context.Context) bool {
 	_, err := os.Stat(s.filePath)
 	return err == nil
+}
+
+// Очищает хранилище
+func (s *TextStorage) Clear(ctx context.Context) error {
+	s.db = s.db[:0]
+	err := os.Remove(s.filePath)
+	return err
 }

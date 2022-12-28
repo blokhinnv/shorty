@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"log"
-	"os"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -19,7 +18,7 @@ CREATE TABLE Url(
 	added TIMESTAMP,
 	requested_at TIMESTAMP
 );
-CREATE UNIQUE INDEX idx_url ON Url(url, url_id);
+CREATE UNIQUE INDEX idx_url ON Url(url);
 `
 const existsSQL = `
 SELECT EXISTS (
@@ -36,12 +35,11 @@ func InitDB(conn *pgx.Conn, clearOnStart bool) {
 	var exists bool
 	if err := conn.QueryRow(context.Background(), existsSQL).Scan(&exists); err != nil {
 		log.Fatalf("can't create table Url: %v\n", err)
-		os.Exit(1)
 	}
 	if !exists || clearOnStart {
 		if _, err := conn.Exec(context.Background(), createSQL); err != nil {
 			log.Fatalf("can't create table Url: %v\n", err)
-			os.Exit(1)
+
 		}
 	}
 }

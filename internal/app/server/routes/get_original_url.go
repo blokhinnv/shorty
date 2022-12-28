@@ -26,7 +26,6 @@ func GetOriginalURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 			return
 		}
 		rec, err := s.GetURLByID(r.Context(), urlID)
-		fmt.Printf("WTF %+v\n", rec)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNoContent)
 			return

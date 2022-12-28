@@ -2,6 +2,7 @@ package routes
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -28,13 +29,14 @@ func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
 		resp        string
 	}
 	tests := []struct {
-		name string
-		body string
-		want want
+		name       string
+		body       string
+		want       want
+		clearAfter bool
 	}{
 		{
 			// ок
-			name: "ok",
+			name: "test_ok",
 			body: `[{"correlation_id":"test1","original_url":"https://mail.ru/"},{"correlation_id":"test2","original_url":"https://dzen.ru/"}]`,
 
 			want: want{
@@ -42,6 +44,7 @@ func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
 				contentType: "application/json; charset=utf-8",
 				resp:        `[{"correlation_id":"test1","short_url":"http://localhost:8080/f3o7hcrcrupz1"},{"correlation_id":"test2","short_url":"http://localhost:8080/k7os90zw0x74"}]`,
 			},
+			clearAfter: false,
 		},
 		{
 			// пустой запрос
@@ -52,6 +55,7 @@ func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
 				contentType: "text/plain; charset=utf-8",
 				resp:        "",
 			},
+			clearAfter: false,
 		},
 		{
 			// плохой запрос
@@ -62,6 +66,7 @@ func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
 				contentType: "text/plain; charset=utf-8",
 				resp:        "",
 			},
+			clearAfter: false,
 		},
 		{
 			// невалидный url
@@ -72,6 +77,24 @@ func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
 				contentType: "text/plain; charset=utf-8",
 				resp:        "",
 			},
+			clearAfter: false,
+		},
+		{
+			// дубликат
+			name: "test_duplicated",
+			body: `[{"correlation_id":"test1","original_url":"https://mail.ru/"},{"correlation_id":"test2","original_url":"https://dzen.ru/"}]`,
+
+			want: want{
+				statusCode:  http.StatusConflict,
+				contentType: "text/plain; charset=utf-8",
+				resp: fmt.Sprintf(
+					`duplicate key value violates unique constraint: url=%v, urlID=%v, userID=%v`,
+					"https://mail.ru/",
+					"f3o7hcrcrupz1",
+					userID,
+				),
+			},
+			clearAfter: false,
 		},
 	}
 	client := resty.New()
@@ -88,6 +111,9 @@ func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
 			assert.Equal(t, tt.want.contentType, res.Header().Get("Content-Type"))
 			if tt.want.statusCode == http.StatusCreated {
 				assert.Equal(t, tt.want.resp, res.String())
+			}
+			if tt.clearAfter {
+				s.Clear(context.Background())
 			}
 		})
 	}

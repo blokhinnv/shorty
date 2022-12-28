@@ -30,7 +30,6 @@ func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
 	// один URL, проверяем, что все прошло без ошибок
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
 	shortURLID, shortURL, err := shorten.GetShortURL(s, longURL, userID, testCfg.baseURL)
-	s.AddURL(context.Background(), longURL, shortURLID, userID)
 	require.NoError(t, err)
 
 	type want struct {
@@ -39,9 +38,10 @@ func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
 		contentType string
 	}
 	tests := []struct {
-		name    string
-		longURL string
-		want    want
+		name       string
+		longURL    string
+		want       want
+		clearAfter bool
 	}{
 		{
 			// тело запроса = url для сокращения
@@ -52,6 +52,7 @@ func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
 				result:      shortURL,
 				contentType: "text/plain; charset=utf-8",
 			},
+			clearAfter: true,
 		},
 		{
 			// тело запроса имеет вид url=url для сокращения
@@ -64,6 +65,7 @@ func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
 				result:      shortURL,
 				contentType: "text/plain; charset=utf-8",
 			},
+			clearAfter: false,
 		},
 		{
 			// некорректный запрос (содержит ;)
@@ -74,6 +76,7 @@ func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
 				result:      fmt.Sprintf("Incorrent request body: url=%v;", longURL),
 				contentType: "text/plain; charset=utf-8",
 			},
+			clearAfter: false,
 		},
 		{
 			// некорректный URL
@@ -84,6 +87,24 @@ func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
 				result:      fmt.Sprintf("not an URL: %v", "some\u1234NonUrlText"),
 				contentType: "text/plain; charset=utf-8",
 			},
+			clearAfter: false,
+		},
+		{
+			// повторный запрос
+			name:    "test_duplicated",
+			longURL: longURL,
+			want: want{
+				statusCode: http.StatusConflict,
+				result: fmt.Sprintf(
+					`duplicate key value violates unique constraint: url=%v, urlID=%v, userID=%v`,
+					longURL,
+					shortURLID,
+					userID,
+				),
+
+				contentType: "text/plain; charset=utf-8",
+			},
+			clearAfter: false,
 		},
 	}
 
@@ -104,6 +125,9 @@ func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
 
 			resShortURL := res.Body()
 			assert.Equal(t, tt.want.result, IPToLocalhost(strings.TrimSpace(string(resShortURL))))
+			if tt.clearAfter {
+				s.Clear(context.Background())
+			}
 		})
 	}
 }

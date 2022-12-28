@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -104,6 +105,14 @@ func GetShortURLsBatchHandlerFunc(s storage.Storage) func(http.ResponseWriter, *
 		}
 		err = s.AddURLBatch(r.Context(), urlIDs, userID)
 		if err != nil {
+			if errors.Is(err, storage.ErrUniqueViolation) {
+				http.Error(
+					w,
+					err.Error(),
+					http.StatusConflict,
+				)
+				return
+			}
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}

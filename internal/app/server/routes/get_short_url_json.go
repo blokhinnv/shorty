@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -81,7 +82,15 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		s.AddURL(r.Context(), longURL, shortURLID, userID)
+		err = s.AddURL(r.Context(), longURL, shortURLID, userID)
+		if errors.Is(err, storage.ErrUniqueViolation) {
+			http.Error(
+				w,
+				err.Error(),
+				http.StatusConflict,
+			)
+			return
+		}
 		// Кодируем результат в виде JSON ...
 		shortenURLEncoded, err := json.Marshal(ResponseJSONBody{shortenURL})
 		if err != nil {

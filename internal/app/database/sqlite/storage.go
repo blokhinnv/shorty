@@ -13,12 +13,14 @@ import (
 	"log"
 
 	"github.com/blokhinnv/shorty/internal/app/storage"
+	"github.com/mattn/go-sqlite3"
 )
 
 const (
 	selectByURLIDSQL  = "SELECT url, user_id FROM Url WHERE url_id = ?"
 	selectByUserIDSQL = "SELECT url, url_id FROM Url WHERE user_id = ?"
-	insertSQL         = "INSERT OR REPLACE INTO Url(url, url_id, user_id) VALUES (?, ?, ?)"
+	insertSQL         = "INSERT INTO Url(url, url_id, user_id) VALUES (?, ?, ?)"
+	clearSQL          = "DELETE FROM Url"
 )
 
 type SQLiteStorage struct {
@@ -43,6 +45,18 @@ func (s *SQLiteStorage) AddURL(ctx context.Context, url, urlID string, userID ui
 	}
 	_, err = stmt.ExecContext(ctx, url, urlID, userID)
 	if err != nil {
+		log.Printf("Error while adding URL: %v", err)
+		if sqlerr, ok := err.(sqlite3.Error); ok {
+			if sqlerr.Code == sqlite3.ErrConstraint {
+				return fmt.Errorf(
+					"%w: url=%v, urlID=%v, userID=%v",
+					storage.ErrUniqueViolation,
+					url,
+					urlID,
+					userID,
+				)
+			}
+		}
 		return err
 	}
 	log.Printf("Added %v=>%v to storage\n", url, urlID)
@@ -128,6 +142,17 @@ func (s *SQLiteStorage) AddURLBatch(
 		// шаг 3 — указываем, что каждая запись будет добавлена в транзакцию
 		if _, err := stmt.ExecContext(ctx, url, urlID, userID); err != nil {
 			log.Println("unable to add row: ", err)
+			if sqlerr, ok := err.(sqlite3.Error); ok {
+				if sqlerr.Code == sqlite3.ErrConstraint {
+					return fmt.Errorf(
+						"%w: url=%v, urlID=%v, userID=%v",
+						storage.ErrUniqueViolation,
+						url,
+						urlID,
+						userID,
+					)
+				}
+			}
 			if err = tx.Rollback(); err != nil {
 				log.Fatalf("update drivers: unable to rollback: %v", err)
 			}
@@ -149,4 +174,10 @@ func (s *SQLiteStorage) Close(ctx context.Context) {
 // Проверяет соединение с хранилищем
 func (s *SQLiteStorage) Ping(ctx context.Context) bool {
 	return s.db.Ping() == nil
+}
+
+// Очищает хранилище
+func (s *SQLiteStorage) Clear(ctx context.Context) error {
+	_, err := s.db.ExecContext(ctx, clearSQL)
+	return err
 }
