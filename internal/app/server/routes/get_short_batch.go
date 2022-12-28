@@ -12,16 +12,15 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
-// Новый эндпоинт POST /api/shorten, принимающий в теле
-// запроса JSON-объект {"url":"<some_url>"} и возвращающий
-// в ответ объект {"result":"<shorten_url>"}.
-func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {
+func GetShortURLsBatchHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {
 	type (
-		RequestJSONBody struct {
-			URL string `json:"url" valid:"url,required"`
+		RequestJSONItem struct {
+			CorrelationID string `json:"correlation_id"`
+			OriginalURL   string `json:"original_url"   valid:"url,required"`
 		}
-		ResponseJSONBody struct {
-			Result string `json:"result"`
+		ResponseJSONItem struct {
+			CorrelationID string `json:"correlation_id"`
+			ShortURL      string `json:"short_url"`
 		}
 	)
 
@@ -41,20 +40,29 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 			http.Error(w, fmt.Sprintf("Can't read body: %v", err.Error()), http.StatusBadRequest)
 			return
 		}
-		// Преобразуем тело запроса и структуру...
-		bodyDecoded := RequestJSONBody{}
+		// Преобразуем тело запроса в слайс структур...
+		bodyDecoded := []RequestJSONItem{}
 		if err = json.Unmarshal(bodyRaw, &bodyDecoded); err != nil {
 			http.Error(w, fmt.Sprintf("Can't decode body: %e", err), http.StatusBadRequest)
 			return
 		}
-		// ... и проверяем валидность
-		result, err := govalidator.ValidateStruct(bodyDecoded)
-		if err != nil || !result {
-			http.Error(w, fmt.Sprintf("Body is not valid: %v", err.Error()), http.StatusBadRequest)
+		if len(bodyDecoded) == 0 {
+			http.Error(w, fmt.Sprintf("nothing to add: %v", bodyRaw), http.StatusBadRequest)
 			return
 		}
-		// Сокращаем URL
-		longURL := bodyDecoded.URL
+		// ... и проверяем валидность входных URL
+		for _, item := range bodyDecoded {
+			result, err := govalidator.ValidateStruct(item)
+			if err != nil || !result {
+				http.Error(
+					w,
+					fmt.Sprintf("Body is not valid: %v", err.Error()),
+					http.StatusBadRequest,
+				)
+				return
+			}
+		}
+		// Получаем baseURL и идентифицируем пользователя
 		baseURL, ok := r.Context().Value(middleware.BaseURLCtxKey).(string)
 		if !ok {
 			http.Error(
@@ -75,15 +83,33 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 			)
 			return
 		}
-
-		shortURLID, shortenURL, err := shorten.GetShortURL(s, longURL, userID, baseURL)
+		urlIDs := make(map[string]string)
+		result := make([]ResponseJSONItem, 0)
+		for _, item := range bodyDecoded {
+			shortURLID, shortenURL, err := shorten.GetShortURL(
+				s,
+				item.OriginalURL,
+				userID,
+				baseURL,
+			)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			urlIDs[item.OriginalURL] = shortURLID
+			result = append(
+				result,
+				ResponseJSONItem{CorrelationID: item.CorrelationID, ShortURL: shortenURL},
+			)
+		}
+		err = s.AddURLBatch(r.Context(), urlIDs, userID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		s.AddURL(r.Context(), longURL, shortURLID, userID)
+
 		// Кодируем результат в виде JSON ...
-		shortenURLEncoded, err := json.Marshal(ResponseJSONBody{shortenURL})
+		resultEncoded, err := json.Marshal(result)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
@@ -91,7 +117,7 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 		// .. и отправляем с нужными заголовками
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusCreated)
-		w.Write(shortenURLEncoded)
+		w.Write(resultEncoded)
 
 	}
 }

@@ -1,12 +1,13 @@
 package routes
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
-	"github.com/blokhinnv/shorty/internal/app/urltrans"
+	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/go-resty/resty/v2"
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +17,7 @@ import (
 // Тесты для GET-запроса
 func LengthenTestLogic(t *testing.T, testCfg TestConfig) {
 	s := db.NewDBStorage(testCfg.serverCfg)
-	defer s.Close()
+	defer s.Close(context.Background())
 	r := NewRouter(s, testCfg.serverCfg)
 	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
 	defer ts.Close()
@@ -24,8 +25,10 @@ func LengthenTestLogic(t *testing.T, testCfg TestConfig) {
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
-	shortURL, err := urltrans.GetShortURL(s, longURL, userID, testCfg.baseURL)
+	shortURLID, shortURL, err := shorten.GetShortURL(s, longURL, userID, testCfg.baseURL)
 	require.NoError(t, err)
+	s.AddURL(context.Background(), longURL, shortURLID, userID)
+
 	type want struct {
 		statusCode  int
 		location    string

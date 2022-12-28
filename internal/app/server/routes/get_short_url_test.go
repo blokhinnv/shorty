@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -8,7 +9,7 @@ import (
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
-	"github.com/blokhinnv/shorty/internal/app/urltrans"
+	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/go-resty/resty/v2"
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
@@ -20,7 +21,7 @@ func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
 	// Если стартануть сервер cmd/shortener/main,
 	// то будет использоваться его роутинг даже в тестах :о
 	s := db.NewDBStorage(testCfg.serverCfg)
-	defer s.Close()
+	defer s.Close(context.Background())
 	r := NewRouter(s, testCfg.serverCfg)
 
 	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
@@ -28,7 +29,8 @@ func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
-	shortURL, err := urltrans.GetShortURL(s, longURL, userID, testCfg.baseURL)
+	shortURLID, shortURL, err := shorten.GetShortURL(s, longURL, userID, testCfg.baseURL)
+	s.AddURL(context.Background(), longURL, shortURLID, userID)
 	require.NoError(t, err)
 
 	type want struct {

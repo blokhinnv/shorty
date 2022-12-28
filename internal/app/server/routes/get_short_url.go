@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
+	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/blokhinnv/shorty/internal/app/storage"
-	"github.com/blokhinnv/shorty/internal/app/urltrans"
 )
 
 // Эндпоинт POST / принимает в теле запроса строку URL
@@ -53,11 +53,12 @@ func GetShortURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.R
 			return
 		}
 
-		shortenURL, err := urltrans.GetShortURL(s, longURL, userID, baseURL)
+		shortURLID, shortenURL, err := shorten.GetShortURL(s, longURL, userID, baseURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		s.AddURL(r.Context(), longURL, shortURLID, userID)
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(http.StatusCreated)
 		w.Write([]byte(shortenURL))

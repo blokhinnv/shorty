@@ -8,7 +8,7 @@ import (
 
 func PingHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !s.Ping() {
+		if !s.Ping(r.Context()) {
 			http.Error(
 				w,
 				"connection is lost",

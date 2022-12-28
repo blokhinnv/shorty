@@ -2,6 +2,8 @@
 package database
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
@@ -133,7 +135,7 @@ func (s *TextStorage) DeleteNotRequested() {
 // ------ Реализация интерфейса Storage ---------
 
 // Метод для добавления нового URL в файле
-func (s *TextStorage) AddURL(url, urlID string, userID uint32) error {
+func (s *TextStorage) AddURL(ctx context.Context, url, urlID string, userID uint32) error {
 	// проблема: мне нужно открывать файл и на чтение, и на добавление
 	// и при этом перемещать указатель то на начало, то на конец
 	// но если открыть в режиме O_APPEND, то поведение Seek "is not specified" -- страшно
@@ -234,7 +236,7 @@ func (s *TextStorage) FetchFile(request TextStorageRequest) ([]storage.Record, e
 }
 
 // Возвращает URL по его ID (сначала смотрит в памяти, потом в файле)
-func (s *TextStorage) GetURLByID(urlID string) (storage.Record, error) {
+func (s *TextStorage) GetURLByID(ctx context.Context, urlID string) (storage.Record, error) {
 	req := TextStorageRequest{URLID: urlID, Size: 1, How: ByURLID}
 	r, err := s.FetchMem(req)
 	if errors.Is(err, storage.ErrURLWasNotFound) {
@@ -249,7 +251,7 @@ func (s *TextStorage) GetURLByID(urlID string) (storage.Record, error) {
 
 // Получает URLs по ID пользователя (смотрим только в файле, т.к. его все равно придется
 // смотреть, чтобы быть уверенным, что нашли все)
-func (s *TextStorage) GetURLsByUser(userID uint32) ([]storage.Record, error) {
+func (s *TextStorage) GetURLsByUser(ctx context.Context, userID uint32) ([]storage.Record, error) {
 	req := TextStorageRequest{UserID: userID, Size: 0, How: ByUserID}
 	rFile, err := s.FetchFile(req)
 	if err != nil {
@@ -258,11 +260,58 @@ func (s *TextStorage) GetURLsByUser(userID uint32) ([]storage.Record, error) {
 	return rFile, nil
 }
 
-// Закрывает соединение с хранилищем
-func (s *TextStorage) Close() {
+// Добавляет пакет URLов в хранилище
+func (s *TextStorage) AddURLBatch(
+	ctx context.Context,
+	urlIDs map[string]string,
+	userID uint32,
+) error {
+	file, err := os.OpenFile(s.filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	// Попробуем найти запись в хранилище - если есть, то добавлять не надо
+	buf := bytes.NewBuffer([]byte{})
+	encoder := json.NewEncoder(buf)
+
+	for url, urlID := range urlIDs {
+		req := TextStorageRequest{URLID: urlID, UserID: userID, Size: 1, How: ByBoth}
+		result, err := s.FetchFile(req)
+		if err != nil && !errors.Is(err, storage.ErrURLWasNotFound) {
+			return err
+		}
+		if len(result) == 0 {
+			r := storage.Record{
+				URL:         url,
+				URLID:       urlID,
+				UserID:      userID,
+				Added:       time.Now(),
+				RequestedAt: time.Now(),
+			}
+			s.db = append(s.db, r)
+			err = encoder.Encode(r)
+			if err != nil {
+				return err
+			}
+			log.Printf("Added %v=>%v to storage\n", url, urlID)
+		}
+	}
+	// запишем в файл
+	_, err = file.Write(buf.Bytes())
+	if err != nil {
+		return err
+	}
+	// почистим память от старых запросов
+	s.DeleteNotRequested()
+	return nil
 }
 
-func (s *TextStorage) Ping() bool {
+// Закрывает соединение с хранилищем
+func (s *TextStorage) Close(ctx context.Context) {
+}
+
+func (s *TextStorage) Ping(ctx context.Context) bool {
 	_, err := os.Stat(s.filePath)
 	return err == nil
 }

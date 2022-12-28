@@ -7,6 +7,7 @@
 package database
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -35,12 +36,12 @@ func NewSQLiteStorage(conf SQLiteConfig) (*SQLiteStorage, error) {
 }
 
 // Метод для добавления нового URL в БД
-func (s *SQLiteStorage) AddURL(url, urlID string, userID uint32) error {
-	stmt, err := s.db.Prepare(insertSQL)
+func (s *SQLiteStorage) AddURL(ctx context.Context, url, urlID string, userID uint32) error {
+	stmt, err := s.db.PrepareContext(ctx, insertSQL)
 	if err != nil {
 		return err
 	}
-	_, err = stmt.Exec(url, urlID, userID)
+	_, err = stmt.ExecContext(ctx, url, urlID, userID)
 	if err != nil {
 		return err
 	}
@@ -49,9 +50,9 @@ func (s *SQLiteStorage) AddURL(url, urlID string, userID uint32) error {
 }
 
 // Возвращает URL по его ID в БД
-func (s *SQLiteStorage) GetURLByID(urlID string) (storage.Record, error) {
+func (s *SQLiteStorage) GetURLByID(ctx context.Context, urlID string) (storage.Record, error) {
 	// Получаем строки
-	rows, err := s.db.Query(selectByURLIDSQL, urlID)
+	rows, err := s.db.QueryContext(ctx, selectByURLIDSQL, urlID)
 	if err != nil {
 		return storage.Record{}, err
 	}
@@ -73,10 +74,14 @@ func (s *SQLiteStorage) GetURLByID(urlID string) (storage.Record, error) {
 	return rec, nil
 }
 
-func (s *SQLiteStorage) GetURLsByUser(userID uint32) ([]storage.Record, error) {
+// Получает URLs по ID пользователя
+func (s *SQLiteStorage) GetURLsByUser(
+	ctx context.Context,
+	userID uint32,
+) ([]storage.Record, error) {
 	results := make([]storage.Record, 0)
 
-	rows, err := s.db.Query(selectByUserIDSQL, userID)
+	rows, err := s.db.QueryContext(ctx, selectByUserIDSQL, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -98,11 +103,50 @@ func (s *SQLiteStorage) GetURLsByUser(userID uint32) ([]storage.Record, error) {
 	return results, nil
 }
 
+// Добавляет пакет URLов в хранилище
+func (s *SQLiteStorage) AddURLBatch(
+	ctx context.Context,
+	urlIDs map[string]string,
+	userID uint32,
+) error {
+	// шаг 1 — объявляем транзакцию
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	// шаг 1.1 — если возникает ошибка, откатываем изменения
+	defer tx.Rollback()
+	// шаг 2 — готовим инструкцию
+	stmt, err := tx.PrepareContext(ctx, insertSQL)
+	if err != nil {
+		return err
+	}
+	// шаг 2.1 — не забываем закрыть инструкцию, когда она больше не нужна
+	defer stmt.Close()
+
+	for url, urlID := range urlIDs {
+		// шаг 3 — указываем, что каждая запись будет добавлена в транзакцию
+		if _, err := stmt.ExecContext(ctx, url, urlID, userID); err != nil {
+			log.Println("unable to add row: ", err)
+			if err = tx.Rollback(); err != nil {
+				log.Fatalf("update drivers: unable to rollback: %v", err)
+			}
+			return err
+		}
+	}
+	// шаг 4 — сохраняем изменения
+	if err := tx.Commit(); err != nil {
+		log.Fatalf("update drivers: unable to commit: %v", err)
+	}
+	return nil
+}
+
 // Закрывает соединение с SQLite
-func (s *SQLiteStorage) Close() {
+func (s *SQLiteStorage) Close(ctx context.Context) {
 	s.db.Close()
 }
 
-func (s *SQLiteStorage) Ping() bool {
+// Проверяет соединение с хранилищем
+func (s *SQLiteStorage) Ping(ctx context.Context) bool {
 	return s.db.Ping() == nil
 }

@@ -51,7 +51,7 @@ func GetOriginalURLsHandlerFunc(s storage.Storage) func(http.ResponseWriter, *ht
 			return
 		}
 
-		records, err := s.GetURLsByUser(userID)
+		records, err := s.GetURLsByUser(r.Context(), userID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNoContent)
 			return

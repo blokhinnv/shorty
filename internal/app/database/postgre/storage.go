@@ -33,8 +33,8 @@ func NewPostgreStorage(conf PostgreConfig) (*PostgreStorage, error) {
 }
 
 // Метод для добавления нового URL в БД
-func (s *PostgreStorage) AddURL(url, urlID string, userID uint32) error {
-	_, err := s.conn.Exec(context.Background(), insertSQL, url, urlID, userID)
+func (s *PostgreStorage) AddURL(ctx context.Context, url, urlID string, userID uint32) error {
+	_, err := s.conn.Exec(ctx, insertSQL, url, urlID, userID)
 	if err != nil {
 		log.Fatalf("Error while adding URL: %v", err)
 		return err
@@ -44,10 +44,10 @@ func (s *PostgreStorage) AddURL(url, urlID string, userID uint32) error {
 }
 
 // Возвращает URL по его ID в БД
-func (s *PostgreStorage) GetURLByID(urlID string) (storage.Record, error) {
+func (s *PostgreStorage) GetURLByID(ctx context.Context, urlID string) (storage.Record, error) {
 	rec := storage.Record{URLID: urlID}
 	// Получаем строки
-	err := s.conn.QueryRow(context.Background(), selectByURLIDSQL, urlID).
+	err := s.conn.QueryRow(ctx, selectByURLIDSQL, urlID).
 		Scan(&rec.URL, &rec.UserID)
 	// любая ошибка здесь (в т.ч. ErrNoRows) означает, что результат не найден
 	if err != nil {
@@ -56,10 +56,14 @@ func (s *PostgreStorage) GetURLByID(urlID string) (storage.Record, error) {
 	return rec, nil
 }
 
-func (s *PostgreStorage) GetURLsByUser(userID uint32) ([]storage.Record, error) {
+// Получает URLs по ID пользователя
+func (s *PostgreStorage) GetURLsByUser(
+	ctx context.Context,
+	userID uint32,
+) ([]storage.Record, error) {
 	results := make([]storage.Record, 0)
 
-	rows, err := s.conn.Query(context.Background(), selectByUserIDSQL, userID)
+	rows, err := s.conn.Query(ctx, selectByUserIDSQL, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -86,11 +90,46 @@ func (s *PostgreStorage) GetURLsByUser(userID uint32) ([]storage.Record, error) 
 	return results, nil
 }
 
-// Закрывает соединение с SQLite
-func (s *PostgreStorage) Close() {
-	s.conn.Close(context.Background())
+// Добавляет пакет URLов в хранилище
+func (s *PostgreStorage) AddURLBatch(
+	ctx context.Context,
+	urlIDs map[string]string,
+	userID uint32,
+) error {
+	// шаг 1 — объявляем транзакцию
+	tx, err := s.conn.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	// шаг 1.1 — если возникает ошибка, откатываем изменения
+	defer tx.Rollback(ctx)
+	// https://github.com/jackc/pgx/issues/791
+	// pgx automatically prepares and caches statements by default.
+	// So unless you have a very specific and unusual use case you
+	// should not explicitly prepare statements.
+	for url, urlID := range urlIDs {
+		// шаг 3 — указываем, что каждая запись будет добавлена в транзакцию
+		if _, err := tx.Exec(ctx, insertSQL, url, urlID, userID); err != nil {
+			log.Println("unable to add row: ", err)
+			if err = tx.Rollback(ctx); err != nil {
+				log.Fatalf("update drivers: unable to rollback: %v", err)
+			}
+			return err
+		}
+	}
+	// шаг 4 — сохраняем изменения
+	if err := tx.Commit(ctx); err != nil {
+		log.Fatalf("update drivers: unable to commit: %v", err)
+	}
+	return nil
 }
 
-func (s *PostgreStorage) Ping() bool {
-	return s.conn.Ping(context.Background()) == nil
+// Закрывает соединение с Postgre
+func (s *PostgreStorage) Close(ctx context.Context) {
+	s.conn.Close(ctx)
+}
+
+// Проверяет соединение с хранилищем
+func (s *PostgreStorage) Ping(ctx context.Context) bool {
+	return s.conn.Ping(ctx) == nil
 }

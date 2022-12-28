@@ -18,10 +18,13 @@ func NewRouter(storage storage.Storage, cfg config.ServerConfig) chi.Router {
 		r.Use(authentifier.Handler)
 		r.Use(m.RequestGZipDecompress)
 		r.Use(m.ResponseGZipCompess)
-		r.Get("/{idURL}", GetOriginalURLHandlerFunc(storage))
 		r.Post("/", GetShortURLHandlerFunc(storage))
-		r.Post("/api/shorten", GetShortURLAPIHandlerFunc(storage))
-		r.Get("/api/user/urls", GetOriginalURLsHandlerFunc(storage))
+		r.Get("/{idURL}", GetOriginalURLHandlerFunc(storage))
+		r.Route("/api", func(r chi.Router) {
+			r.Get("/user/urls", GetOriginalURLsHandlerFunc(storage))
+			r.Post("/shorten", GetShortURLAPIHandlerFunc(storage))
+			r.Post("/shorten/batch", GetShortURLsBatchHandlerFunc(storage))
+		})
 	})
 	r.Get("/ping", PingHandlerFunc(storage))
 	return r
