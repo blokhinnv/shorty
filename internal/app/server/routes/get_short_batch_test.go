@@ -2,7 +2,6 @@ package routes
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -86,13 +85,8 @@ func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
 
 			want: want{
 				statusCode:  http.StatusConflict,
-				contentType: "text/plain; charset=utf-8",
-				resp: fmt.Sprintf(
-					`duplicate key value violates unique constraint: url=%v, urlID=%v, userID=%v`,
-					"https://mail.ru/",
-					"f3o7hcrcrupz1",
-					userID,
-				),
+				contentType: "application/json; charset=utf-8",
+				resp:        `[{"correlation_id":"test1","short_url":"http://localhost:8080/f3o7hcrcrupz1"},{"correlation_id":"test2","short_url":"http://localhost:8080/k7os90zw0x74"}]`,
 			},
 			clearAfter: false,
 		},

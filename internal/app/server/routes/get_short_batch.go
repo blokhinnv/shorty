@@ -104,17 +104,14 @@ func GetShortURLsBatchHandlerFunc(s storage.Storage) func(http.ResponseWriter, *
 			)
 		}
 		err = s.AddURLBatch(r.Context(), urlIDs, userID)
+		var status int = http.StatusCreated
 		if err != nil {
 			if errors.Is(err, storage.ErrUniqueViolation) {
-				http.Error(
-					w,
-					err.Error(),
-					http.StatusConflict,
-				)
+				status = http.StatusConflict
+			} else {
+				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
 		}
 
 		// Кодируем результат в виде JSON ...
@@ -125,7 +122,7 @@ func GetShortURLsBatchHandlerFunc(s storage.Storage) func(http.ResponseWriter, *
 		}
 		// .. и отправляем с нужными заголовками
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(status)
 		w.Write(resultEncoded)
 
 	}

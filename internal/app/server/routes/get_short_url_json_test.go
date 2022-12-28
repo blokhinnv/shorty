@@ -30,7 +30,7 @@ func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
 	// один URL, проверяем, что все прошло без ошибок
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
 	longURLEncoded := []byte(fmt.Sprintf(`{"url":"%v"}`, longURL))
-	shortURLID, shortURL, err := shorten.GetShortURL(s, longURL, userID, testCfg.baseURL)
+	_, shortURL, err := shorten.GetShortURL(s, longURL, userID, testCfg.baseURL)
 	require.NoError(t, err)
 
 	shortURLEncoded := []byte(fmt.Sprintf(`{"result":"%v"}`, shortURL))
@@ -111,16 +111,9 @@ func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
 			reqBody:        longURLEncoded,
 			reqContentType: "application/json",
 			want: want{
-				statusCode: http.StatusConflict,
-				result: []byte(
-					fmt.Sprintf(
-						`duplicate key value violates unique constraint: url=%v, urlID=%v, userID=%v`,
-						longURL,
-						shortURLID,
-						userID,
-					),
-				),
-				contentType: "text/plain; charset=utf-8",
+				statusCode:  http.StatusConflict,
+				result:      shortURLEncoded,
+				contentType: "application/json; charset=utf-8",
 			},
 			clearAfter: false,
 		},

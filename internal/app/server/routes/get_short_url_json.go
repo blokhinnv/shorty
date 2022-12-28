@@ -83,13 +83,9 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 			return
 		}
 		err = s.AddURL(r.Context(), longURL, shortURLID, userID)
+		var status int = http.StatusCreated
 		if errors.Is(err, storage.ErrUniqueViolation) {
-			http.Error(
-				w,
-				err.Error(),
-				http.StatusConflict,
-			)
-			return
+			status = http.StatusConflict
 		}
 		// Кодируем результат в виде JSON ...
 		shortenURLEncoded, err := json.Marshal(ResponseJSONBody{shortenURL})
@@ -99,7 +95,7 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 		}
 		// .. и отправляем с нужными заголовками
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(status)
 		w.Write(shortenURLEncoded)
 
 	}

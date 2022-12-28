@@ -29,7 +29,7 @@ func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
-	shortURLID, shortURL, err := shorten.GetShortURL(s, longURL, userID, testCfg.baseURL)
+	_, shortURL, err := shorten.GetShortURL(s, longURL, userID, testCfg.baseURL)
 	require.NoError(t, err)
 
 	type want struct {
@@ -94,14 +94,8 @@ func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
 			name:    "test_duplicated",
 			longURL: longURL,
 			want: want{
-				statusCode: http.StatusConflict,
-				result: fmt.Sprintf(
-					`duplicate key value violates unique constraint: url=%v, urlID=%v, userID=%v`,
-					longURL,
-					shortURLID,
-					userID,
-				),
-
+				statusCode:  http.StatusConflict,
+				result:      shortURL,
 				contentType: "text/plain; charset=utf-8",
 			},
 			clearAfter: false,
