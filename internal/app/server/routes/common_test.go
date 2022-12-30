@@ -35,7 +35,7 @@ type TestConfig struct {
 // Конструктор конфига для запуска тестов
 func NewTestConfig() TestConfig {
 	var flagCfg = config.FlagConfig{} // будем считать, что в тестах флаги не используются
-	var serverCfg = config.NewServerConfig(flagCfg)
+	var serverCfg = config.NewServerConfig(&flagCfg)
 	return TestConfig{
 		serverCfg: serverCfg,
 		host:      serverCfg.ServerAddress,

@@ -13,18 +13,19 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
+type (
+	ShortJSONRequest struct {
+		URL string `json:"url" valid:"url,required"`
+	}
+	ShortJSONResponse struct {
+		Result string `json:"result"`
+	}
+)
+
 // Новый эндпоинт POST /api/shorten, принимающий в теле
 // запроса JSON-объект {"url":"<some_url>"} и возвращающий
 // в ответ объект {"result":"<shorten_url>"}.
 func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {
-	type (
-		RequestJSONBody struct {
-			URL string `json:"url" valid:"url,required"`
-		}
-		ResponseJSONBody struct {
-			Result string `json:"result"`
-		}
-	)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Проверяем заголовки запроса
@@ -43,7 +44,7 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 			return
 		}
 		// Преобразуем тело запроса и структуру...
-		bodyDecoded := RequestJSONBody{}
+		bodyDecoded := ShortJSONRequest{}
 		if err = json.Unmarshal(bodyRaw, &bodyDecoded); err != nil {
 			http.Error(w, fmt.Sprintf("Can't decode body: %e", err), http.StatusBadRequest)
 			return
@@ -88,7 +89,7 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 			status = http.StatusConflict
 		}
 		// Кодируем результат в виде JSON ...
-		shortenURLEncoded, err := json.Marshal(ResponseJSONBody{shortenURL})
+		shortenURLEncoded, err := json.Marshal(ShortJSONResponse{shortenURL})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return

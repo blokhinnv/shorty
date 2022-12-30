@@ -24,7 +24,7 @@ func init() {
 		"file where the data is stored",
 	)
 	flag.StringVar(&flagCfg.SecretKey, "k", "", "secret key to sign uid cookies")
-	flag.StringVar(&flagCfg.DatabaseDSN, "d", "", "postgre connect string")
+	flag.StringVar(&flagCfg.DatabaseDSN, "d", "", "postgres connect string")
 }
 
 func main() {
@@ -41,6 +41,6 @@ func main() {
 	// флаги надо собрать в одном месте на старте
 	// и прокидывать через кучу слоев....
 	flag.Parse()
-	serverCfg := config.NewServerConfig(flagCfg)
+	serverCfg := config.NewServerConfig(&flagCfg)
 	s.RunServer(serverCfg)
 }

@@ -13,8 +13,8 @@ type ServerConfig struct {
 	ServerAddress           string        `env:"SERVER_ADDRESS"              envDefault:"http://localhost:8080" valid:"url"`
 	BaseURL                 string        `env:"BASE_URL"                    envDefault:"http://localhost:8080" valid:"url"`
 	SecretKey               string        `env:"SECRET_KEY"` // не буду указывать дефолтное значение для безопасности
-	PostgreDatabaseDSN      string        `env:"DATABASE_DSN"`
-	PostgreClearOnStart     bool          `env:"PG_CLEAR_ON_START"           envDefault:"true"`
+	PostgresDatabaseDSN     string        `env:"DATABASE_DSN"`
+	PostgresClearOnStart    bool          `env:"PG_CLEAR_ON_START"           envDefault:"true"`
 	SQLiteDBPath            string        `env:"SQLITE_DB_PATH"              envDefault:"db.sqlite3"`
 	SQLiteClearOnStart      bool          `env:"SQLITE_CLEAR_ON_START"       envDefault:"true"`
 	FileStoragePath         string        `env:"FILE_STORAGE_PATH"`
@@ -24,7 +24,7 @@ type ServerConfig struct {
 }
 
 // Обновляет конфиг сервера на основе флагов
-func (cfg *ServerConfig) UpdateFromFlags(flagCfg FlagConfig) {
+func (cfg *ServerConfig) UpdateFromFlags(flagCfg *FlagConfig) {
 	// вроде как приоритет должен быть у env,
 	// но тогда не пройду 7 тест...
 	if flagCfg.ServerAddress != "" {
@@ -40,12 +40,12 @@ func (cfg *ServerConfig) UpdateFromFlags(flagCfg FlagConfig) {
 		cfg.SecretKey = flagCfg.SecretKey
 	}
 	if flagCfg.DatabaseDSN != "" {
-		cfg.PostgreDatabaseDSN = flagCfg.DatabaseDSN
+		cfg.PostgresDatabaseDSN = flagCfg.DatabaseDSN
 	}
 }
 
 // Возвращает конфиг для сервера
-func NewServerConfig(flagCfg FlagConfig) ServerConfig {
+func NewServerConfig(flagCfg *FlagConfig) ServerConfig {
 	cfg := ServerConfig{}
 	if err := env.Parse(&cfg); err != nil {
 		panic(err)

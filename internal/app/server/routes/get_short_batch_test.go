@@ -123,7 +123,7 @@ func Test_ShortenBatch_Text(t *testing.T) {
 	ShortenBatchTestLogic(t, NewTestConfig())
 }
 
-// func Test_ShortenBatch_Postgre(t *testing.T) {
-// 	godotenv.Load("test_postgre.env")
+// func Test_ShortenBatch_Postgres(t *testing.T) {
+// 	godotenv.Load("test_postgres.env")
 // 	ShortenBatchTestLogic(t, NewTestConfig())
 // }

@@ -159,7 +159,7 @@ func Test_ShortenAPI_Text(t *testing.T) {
 	ShortenAPITestLogic(t, NewTestConfig())
 }
 
-// func Test_ShortenAPI_Postgre(t *testing.T) {
-// 	godotenv.Load("test_postgre.env")
+// func Test_ShortenAPI_Postgres(t *testing.T) {
+// 	godotenv.Load("test_postgres.env")
 // 	ShortenAPITestLogic(t, NewTestConfig())
 // }

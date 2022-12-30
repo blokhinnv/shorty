@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	postgre "github.com/blokhinnv/shorty/internal/app/database/postgre"
+	postgres "github.com/blokhinnv/shorty/internal/app/database/postgres"
 	sqlite "github.com/blokhinnv/shorty/internal/app/database/sqlite"
 	text "github.com/blokhinnv/shorty/internal/app/database/text"
 	"github.com/blokhinnv/shorty/internal/app/server/config"
@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	Postgre = iota
+	Postgres = iota
 	Text
 	SQLite
 )
@@ -25,11 +25,12 @@ const (
 // Определяет, какой тип хранилища надо использовать
 // на основе конфига
 func inferStorageType(cfg config.ServerConfig) int {
-	if cfg.PostgreDatabaseDSN != "" {
-		return Postgre
-	} else if cfg.FileStoragePath != "" {
+	switch {
+	case cfg.PostgresDatabaseDSN != "":
+		return Postgres
+	case cfg.FileStoragePath != "":
 		return Text
-	} else {
+	default:
 		return SQLite
 	}
 }
@@ -45,10 +46,10 @@ func NewDBStorage(cfg config.ServerConfig) storage.Storage {
 		sqliteConfig := sqlite.GetSQLiteConfig(cfg)
 		log.Printf("Starting SQLiteStorage with config %+v\n", sqliteConfig)
 		storage, err = sqlite.NewSQLiteStorage(sqliteConfig)
-	case Postgre:
-		postgreConfig := postgre.GetPostgreConfig(cfg)
-		log.Printf("Starting PostgreStorage with config %+v\n", postgreConfig)
-		storage, err = postgre.NewPostgreStorage(postgreConfig)
+	case Postgres:
+		postgresConfig := postgres.GetPostgresConfig(cfg)
+		log.Printf("Starting PostgreStorage with config %+v\n", postgresConfig)
+		storage, err = postgres.NewPostgresStorage(postgresConfig)
 	case Text:
 		textStorageConfig := text.GetTextStorageConfig(cfg)
 		log.Printf("Starting TextStorage with config %+v\n", textStorageConfig)

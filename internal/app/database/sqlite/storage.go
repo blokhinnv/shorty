@@ -128,8 +128,6 @@ func (s *SQLiteStorage) AddURLBatch(
 	if err != nil {
 		return err
 	}
-	// шаг 1.1 — если возникает ошибка, откатываем изменения
-	defer tx.Rollback()
 	// шаг 2 — готовим инструкцию
 	stmt, err := tx.PrepareContext(ctx, insertSQL)
 	if err != nil {

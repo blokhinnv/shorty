@@ -96,7 +96,7 @@ func Test_Lengthen_Text(t *testing.T) {
 	LengthenTestLogic(t, NewTestConfig())
 }
 
-// func Test_Lengthen_Postgre(t *testing.T) {
-// 	godotenv.Load("test_postgre.env")
+// func Test_Lengthen_Postgres(t *testing.T) {
+// 	godotenv.Load("test_postgres.env")
 // 	LengthenTestLogic(t, NewTestConfig())
 // }

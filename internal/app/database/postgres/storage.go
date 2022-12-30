@@ -20,12 +20,12 @@ const (
 	clearSQL            = "DELETE FROM Url"
 )
 
-type PostgreStorage struct {
+type PostgresStorage struct {
 	conn *pgx.Conn
 }
 
 // Конструктор нового хранилища URL
-func NewPostgreStorage(conf PostgreConfig) (*PostgreStorage, error) {
+func NewPostgresStorage(conf PostgresConfig) (*PostgresStorage, error) {
 	conn, err := pgx.Connect(context.Background(), conf.DatabaseDSN)
 	if err != nil {
 		log.Fatalf("can't access to DB %s: %v\n", conf.DatabaseDSN, err)
@@ -33,11 +33,11 @@ func NewPostgreStorage(conf PostgreConfig) (*PostgreStorage, error) {
 	}
 	InitDB(conn, conf.ClearOnStart)
 
-	return &PostgreStorage{conn}, nil
+	return &PostgresStorage{conn}, nil
 }
 
 // Метод для добавления нового URL в БД
-func (s *PostgreStorage) AddURL(ctx context.Context, url, urlID string, userID uint32) error {
+func (s *PostgresStorage) AddURL(ctx context.Context, url, urlID string, userID uint32) error {
 	_, err := s.conn.Exec(ctx, insertSQL, url, urlID, userID)
 	if err != nil {
 		log.Printf("Error while adding URL: %v", err)
@@ -59,7 +59,7 @@ func (s *PostgreStorage) AddURL(ctx context.Context, url, urlID string, userID u
 }
 
 // Возвращает URL по его ID в БД
-func (s *PostgreStorage) GetURLByID(ctx context.Context, urlID string) (storage.Record, error) {
+func (s *PostgresStorage) GetURLByID(ctx context.Context, urlID string) (storage.Record, error) {
 	rec := storage.Record{URLID: urlID}
 	// Получаем строки
 	err := s.conn.QueryRow(ctx, selectByURLIDSQL, urlID).
@@ -72,7 +72,7 @@ func (s *PostgreStorage) GetURLByID(ctx context.Context, urlID string) (storage.
 }
 
 // Получает URLs по ID пользователя
-func (s *PostgreStorage) GetURLsByUser(
+func (s *PostgresStorage) GetURLsByUser(
 	ctx context.Context,
 	userID uint32,
 ) ([]storage.Record, error) {
@@ -106,7 +106,7 @@ func (s *PostgreStorage) GetURLsByUser(
 }
 
 // Добавляет пакет URLов в хранилище
-func (s *PostgreStorage) AddURLBatch(
+func (s *PostgresStorage) AddURLBatch(
 	ctx context.Context,
 	urlIDs map[string]string,
 	userID uint32,
@@ -116,8 +116,6 @@ func (s *PostgreStorage) AddURLBatch(
 	if err != nil {
 		return err
 	}
-	// шаг 1.1 — если возникает ошибка, откатываем изменения
-	defer tx.Rollback(ctx)
 	// https://github.com/jackc/pgx/issues/791
 	// pgx automatically prepares and caches statements by default.
 	// So unless you have a very specific and unusual use case you
@@ -150,18 +148,18 @@ func (s *PostgreStorage) AddURLBatch(
 	return nil
 }
 
-// Закрывает соединение с Postgre
-func (s *PostgreStorage) Close(ctx context.Context) {
+// Закрывает соединение с Postgres
+func (s *PostgresStorage) Close(ctx context.Context) {
 	s.conn.Close(ctx)
 }
 
 // Проверяет соединение с хранилищем
-func (s *PostgreStorage) Ping(ctx context.Context) bool {
+func (s *PostgresStorage) Ping(ctx context.Context) bool {
 	return s.conn.Ping(ctx) == nil
 }
 
 // Очищает хранилище
-func (s *PostgreStorage) Clear(ctx context.Context) error {
+func (s *PostgresStorage) Clear(ctx context.Context) error {
 	_, err := s.conn.Exec(ctx, clearSQL)
 	return err
 }
