@@ -36,29 +36,24 @@ func inferStorageType(cfg config.ServerConfig) int {
 }
 
 // Конструктор хранилища на основе БД
-func NewDBStorage(cfg config.ServerConfig) storage.Storage {
-	var storage storage.Storage
-	var err error
+func NewDBStorage(cfg config.ServerConfig) (storage.Storage,error) {
+	//var storage storage.Storage
+	//var err error
 
 	storageType := inferStorageType(cfg)
 	switch storageType {
 	case SQLite:
 		sqliteConfig := sqlite.GetSQLiteConfig(cfg)
 		log.Printf("Starting SQLiteStorage with config %+v\n", sqliteConfig)
-		storage, err = sqlite.NewSQLiteStorage(sqliteConfig)
+		return sqlite.NewSQLiteStorage(sqliteConfig)
 	case Postgres:
 		postgresConfig := postgres.GetPostgresConfig(cfg)
 		log.Printf("Starting PostgreStorage with config %+v\n", postgresConfig)
-		storage, err = postgres.NewPostgresStorage(postgresConfig)
+		return postgres.NewPostgresStorage(postgresConfig)
 	case Text:
 		textStorageConfig := text.GetTextStorageConfig(cfg)
 		log.Printf("Starting TextStorage with config %+v\n", textStorageConfig)
-		storage, err = text.NewTextStorage(textStorageConfig)
-	default:
-		panic(fmt.Sprintf("unknown storage type %v", storageType))
+		return text.NewTextStorage(textStorageConfig)
 	}
-	if err != nil {
-		panic(fmt.Sprintf("can't create a storage: %v", err.Error()))
-	}
-	return storage
+	return nil, fmt.Errorf("unknown storage type %v", storageType))
 }

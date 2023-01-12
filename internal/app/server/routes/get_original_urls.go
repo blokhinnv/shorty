@@ -17,7 +17,7 @@ type ShortenedURLSAnswer struct {
 
 // Готовит ответ сервера в нужном виде
 func prepareAnswer(records []storage.Record, baseURL string) []ShortenedURLSAnswer {
-	results := make([]ShortenedURLSAnswer, 0)
+	results := make([]ShortenedURLSAnswer, 0, len(records))
 	for _, r := range records {
 		results = append(
 			results,
