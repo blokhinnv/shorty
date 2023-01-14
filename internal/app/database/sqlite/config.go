@@ -1,18 +1,13 @@
 package database
 
-import (
-	"github.com/caarlos0/env/v6"
-)
+import "github.com/blokhinnv/shorty/internal/app/server/config"
 
 type SQLiteConfig struct {
-	DBPath string `env:"SQLITE_DB_PATH" envDefault:"db.sqlite3"`
+	DBPath       string
+	ClearOnStart bool
 }
 
-// Конструктор конфига SQLite на основе переменных окружения
-func GetSQLiteConfig() SQLiteConfig {
-	var config SQLiteConfig
-	if err := env.Parse(&config); err != nil {
-		panic(err)
-	}
-	return config
+// Конструктор конфига SQLite на основе конфига сервера
+func GetSQLiteConfig(cfg config.ServerConfig) SQLiteConfig {
+	return SQLiteConfig{DBPath: cfg.SQLiteDBPath, ClearOnStart: cfg.SQLiteClearOnStart}
 }

@@ -129,7 +129,7 @@ func main() {
 	flag.Parse()
 	// адрес сервиса (как его писать, расскажем в следующем уроке)
 	flagCfg := config.FlagConfig{}
-	endpoint := fmt.Sprintf("http://%v/", config.GetServerConfig(flagCfg).ServerAddress)
+	endpoint := fmt.Sprintf("http://%v/", config.NewServerConfig(&flagCfg).ServerAddress)
 	// приглашение в консоли
 	fmt.Println("Введите длинный URL")
 	// открываем потоковое чтение из консоли

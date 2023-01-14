@@ -14,14 +14,20 @@ DROP TABLE IF EXISTS Url;
 CREATE TABLE Url(
 	encoding_id INTEGER PRIMARY KEY AUTOINCREMENT,
 	url VARCHAR NOT NULL,
-	url_id VARCHAR NOT NULL
+	url_id VARCHAR NOT NULL,
+	user_id INT NOT NULL,
+	added VARCHAR,
+	requested_at VARCHAR
 );
-CREATE UNIQUE INDEX idx_url  ON Url(url, url_id);
+CREATE UNIQUE INDEX idx_url ON Url(url);
 `
 
 // При инициализации создадим БД, если ее не существует
-func InitDB(dbFile string) {
+func InitDB(dbFile string, clearOnStart bool) {
 	// Проверка существования БД
+	if clearOnStart {
+		os.Remove(dbFile)
+	}
 	if _, err := os.Stat(dbFile); err == nil {
 		return
 	}

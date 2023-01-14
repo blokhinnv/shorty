@@ -1,4 +1,4 @@
-package urltrans
+package shorten
 
 import (
 	"fmt"
@@ -34,14 +34,19 @@ func toShortenBase(urlUUID uint64) string {
 }
 
 // Возвращает укороченный URL
-func GetShortURL(s storage.Storage, url, baseURL string) (string, error) {
+func GetShortURL(
+	s storage.Storage,
+	url string,
+	userID uint32,
+	baseURL string,
+) (string, string, error) {
 	// Если не URL, то укорачивать не будет
 	if !isURL(url) {
-		return "", fmt.Errorf("not an URL: %s ", url)
+		return "", "", fmt.Errorf("not an URL: %s ", url)
 	}
-	urlID := toShortenBase(xxhash.Sum64String(url))
-	s.AddURL(url, urlID)
 	// Сокращаем
-	shortURL := fmt.Sprintf("%v/%v", baseURL, urlID)
-	return shortURL, nil
+	shortURLID := toShortenBase(xxhash.Sum64String(url))
+	// Генерим URL
+	shortURL := fmt.Sprintf("%v/%v", baseURL, shortURLID)
+	return shortURLID, shortURL, nil
 }

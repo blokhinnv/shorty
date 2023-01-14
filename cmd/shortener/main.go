@@ -17,7 +17,14 @@ var flagCfg = config.FlagConfig{}
 func init() {
 	flag.StringVar(&flagCfg.ServerAddress, "a", "", "server address")
 	flag.StringVar(&flagCfg.BaseURL, "b", "", "base url")
-	flag.StringVar(&flagCfg.FileStoragePath, "f", "db.jsonl", "file where the data is stored")
+	flag.StringVar(
+		&flagCfg.FileStoragePath,
+		"f",
+		"",
+		"file where the data is stored",
+	)
+	flag.StringVar(&flagCfg.SecretKey, "k", "", "secret key to sign uid cookies")
+	flag.StringVar(&flagCfg.DatabaseDSN, "d", "", "postgres connect string")
 }
 
 func main() {
@@ -34,5 +41,6 @@ func main() {
 	// флаги надо собрать в одном месте на старте
 	// и прокидывать через кучу слоев....
 	flag.Parse()
-	s.RunServer(flagCfg)
+	serverCfg := config.NewServerConfig(&flagCfg)
+	s.RunServer(serverCfg)
 }

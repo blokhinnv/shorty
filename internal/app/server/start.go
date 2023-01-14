@@ -2,6 +2,7 @@
 package server
 
 import (
+	"context"
 	"log"
 	"net/http"
 
@@ -11,10 +12,9 @@ import (
 )
 
 // Создает хранилище и запускает сервер
-func RunServer(flagCfg config.FlagConfig) {
-	cfg := config.GetServerConfig(flagCfg)
-	s := database.NewDBStorage(flagCfg)
-	defer s.Close()
+func RunServer(cfg config.ServerConfig) {
+	s := database.NewDBStorage(cfg)
+	defer s.Close(context.Background())
 	r := routes.NewRouter(s, cfg)
 	log.Printf("Starting server with config %+v\n", cfg)
 	log.Fatal(http.ListenAndServe(cfg.ServerAddress, r))

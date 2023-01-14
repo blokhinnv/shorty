@@ -4,30 +4,22 @@ import (
 	"time"
 
 	"github.com/blokhinnv/shorty/internal/app/server/config"
-	"github.com/caarlos0/env/v6"
 )
 
 // Конфиг текстового хранилища
 type TextStorageConfig struct {
-	FileStoragePath string        `env:"FILE_STORAGE_PATH"           envDefault:"db.jsonl"`
-	ClearOnStart    bool          `env:"FILE_STORAGE_CLEAR_ON_START" envDefault:"false"`
-	TTLOnDisk       time.Duration `env:"FILE_STORAGE_TTL_ON_DISK"    envDefault:"1h"`
-	TTLInMemory     time.Duration `env:"FILE_STORAGE_TTL_IN_MEMORY"  envDefault:"15m"`
+	FileStoragePath string
+	ClearOnStart    bool
+	TTLOnDisk       time.Duration
+	TTLInMemory     time.Duration
 }
 
-// Обновляет конфиг хранилища
-func (cfg *TextStorageConfig) UpdateFromFlags(flagCfg config.FlagConfig) {
-	if flagCfg.FileStoragePath != "" {
-		cfg.FileStoragePath = flagCfg.FileStoragePath
+// Конструктор конфига текстового хранилища на основе конфига сервера
+func GetTextStorageConfig(cfg config.ServerConfig) TextStorageConfig {
+	return TextStorageConfig{
+		FileStoragePath: cfg.FileStoragePath,
+		ClearOnStart:    cfg.FileStorageClearOnStart,
+		TTLOnDisk:       cfg.FileStorageTTLOnDisk,
+		TTLInMemory:     cfg.FileStorageTTLInMemory,
 	}
-}
-
-// Конструктор конфига текстового хранилища на основе переменных окружения
-func GetTextStorageConfig(flagCfg config.FlagConfig) TextStorageConfig {
-	var config TextStorageConfig
-	if err := env.Parse(&config); err != nil {
-		panic(err)
-	}
-	config.UpdateFromFlags(flagCfg)
-	return config
 }

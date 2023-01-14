@@ -2,21 +2,22 @@ package routes
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
+	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/blokhinnv/shorty/internal/app/storage"
-	"github.com/blokhinnv/shorty/internal/app/urltrans"
 )
 
 type (
-	RequestJSONBody struct {
+	ShortJSONRequest struct {
 		URL string `json:"url" valid:"url,required"`
 	}
-	ResponseJSONBody struct {
+	ShortJSONResponse struct {
 		Result string `json:"result"`
 	}
 )
@@ -25,6 +26,7 @@ type (
 // запроса JSON-объект {"url":"<some_url>"} и возвращающий
 // в ответ объект {"result":"<shorten_url>"}.
 func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {
+
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Проверяем заголовки запроса
 		if r.Header.Get("Content-Type") != "application/json" {
@@ -42,7 +44,7 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 			return
 		}
 		// Преобразуем тело запроса и структуру...
-		bodyDecoded := RequestJSONBody{}
+		bodyDecoded := ShortJSONRequest{}
 		if err = json.Unmarshal(bodyRaw, &bodyDecoded); err != nil {
 			http.Error(w, fmt.Sprintf("Can't decode body: %e", err), http.StatusBadRequest)
 			return
@@ -64,20 +66,37 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 			)
 			return
 		}
-		shortenURL, err := urltrans.GetShortURL(s, longURL, baseURL)
+		// В этом месте уже обязательно должно быть ясно
+		// для кого мы готовим ответ
+		userID, ok := r.Context().Value(middleware.UserIDCtxKey).(uint32)
+		if !ok {
+			http.Error(
+				w,
+				"no user id provided",
+				http.StatusInternalServerError,
+			)
+			return
+		}
+
+		shortURLID, shortenURL, err := shorten.GetShortURL(s, longURL, userID, baseURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		err = s.AddURL(r.Context(), longURL, shortURLID, userID)
+		var status int = http.StatusCreated
+		if errors.Is(err, storage.ErrUniqueViolation) {
+			status = http.StatusConflict
+		}
 		// Кодируем результат в виде JSON ...
-		shortenURLEncoded, err := json.Marshal(ResponseJSONBody{shortenURL})
+		shortenURLEncoded, err := json.Marshal(ShortJSONResponse{shortenURL})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		// .. и отправляем с нужными заголовками
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(status)
 		w.Write(shortenURLEncoded)
 
 	}

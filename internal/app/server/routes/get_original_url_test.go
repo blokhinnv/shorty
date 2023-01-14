@@ -1,12 +1,13 @@
 package routes
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"testing"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
-	"github.com/blokhinnv/shorty/internal/app/urltrans"
+	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/go-resty/resty/v2"
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
@@ -14,18 +15,20 @@ import (
 )
 
 // Тесты для GET-запроса
-func LengthenTestLogic(t *testing.T) {
-	s := db.NewDBStorage(flagCfg)
-	defer s.Close()
-	r := NewRouter(s, serverCfg)
-	ts := NewServerWithPort(r, port)
+func LengthenTestLogic(t *testing.T, testCfg TestConfig) {
+	s := db.NewDBStorage(testCfg.serverCfg)
+	defer s.Close(context.Background())
+	r := NewRouter(s, testCfg.serverCfg)
+	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
 	defer ts.Close()
 
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
-	shortURL, err := urltrans.GetShortURL(s, longURL, baseURL)
+	shortURLID, shortURL, err := shorten.GetShortURL(s, longURL, userID, testCfg.baseURL)
 	require.NoError(t, err)
+	s.AddURL(context.Background(), longURL, shortURLID, userID)
+
 	type want struct {
 		statusCode  int
 		location    string
@@ -49,7 +52,7 @@ func LengthenTestLogic(t *testing.T) {
 		{
 			// некорректный ID сокращенного URL
 			name:     "test_bad_url",
-			shortURL: fmt.Sprintf("http://%v/[url]", host),
+			shortURL: fmt.Sprintf("http://%v/[url]", testCfg.host),
 			want: want{
 				statusCode:  http.StatusBadRequest,
 				location:    "",
@@ -60,9 +63,9 @@ func LengthenTestLogic(t *testing.T) {
 			// Пытаемся вернуть оригинальный URL, который
 			// никогда не видели
 			name:     "test_not_found_url",
-			shortURL: fmt.Sprintf("http://%v/qwerty", host),
+			shortURL: fmt.Sprintf("http://%v/qwerty", testCfg.host),
 			want: want{
-				statusCode:  http.StatusBadRequest,
+				statusCode:  http.StatusNoContent,
 				location:    "",
 				contentType: "text/plain; charset=utf-8",
 			},
@@ -85,10 +88,15 @@ func LengthenTestLogic(t *testing.T) {
 
 func Test_Lengthen_SQLite(t *testing.T) {
 	godotenv.Load("test_sqlite.env")
-	LengthenTestLogic(t)
+	LengthenTestLogic(t, NewTestConfig())
 }
 
-func Test_Lengthen_Test(t *testing.T) {
+func Test_Lengthen_Text(t *testing.T) {
 	godotenv.Load("test_text.env")
-	LengthenTestLogic(t)
+	LengthenTestLogic(t, NewTestConfig())
 }
+
+// func Test_Lengthen_Postgres(t *testing.T) {
+// 	godotenv.Load("test_postgres.env")
+// 	LengthenTestLogic(t, NewTestConfig())
+// }

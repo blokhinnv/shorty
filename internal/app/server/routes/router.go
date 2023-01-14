@@ -10,15 +10,22 @@ import (
 
 // Конструктор нового маршрутизатора
 func NewRouter(storage storage.Storage, cfg config.ServerConfig) chi.Router {
+	authentifier := m.NewAuth([]byte(cfg.SecretKey))
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
 	r.Route("/", func(r chi.Router) {
 		r.Use(m.BaseURLCtx(cfg))
+		r.Use(authentifier.Handler)
 		r.Use(m.RequestGZipDecompress)
 		r.Use(m.ResponseGZipCompess)
-		r.Get("/{idURL}", GetOriginalURLHandlerFunc(storage))
 		r.Post("/", GetShortURLHandlerFunc(storage))
-		r.Post("/api/shorten", GetShortURLAPIHandlerFunc(storage))
+		r.Get("/{idURL}", GetOriginalURLHandlerFunc(storage))
+		r.Route("/api", func(r chi.Router) {
+			r.Get("/user/urls", GetOriginalURLsHandlerFunc(storage))
+			r.Post("/shorten", GetShortURLAPIHandlerFunc(storage))
+			r.Post("/shorten/batch", NewGetShortURLsBatchHandler(storage).Handler)
+		})
 	})
+	r.Get("/ping", PingHandlerFunc(storage))
 	return r
 }

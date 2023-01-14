@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -8,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
+	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/blokhinnv/shorty/internal/app/storage"
-	"github.com/blokhinnv/shorty/internal/app/urltrans"
 )
 
 // Эндпоинт POST / принимает в теле запроса строку URL
@@ -41,14 +42,30 @@ func GetShortURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.R
 			)
 			return
 		}
+		// В этом месте уже обязательно должно быть ясно
+		// для кого мы готовим ответ
+		userID, ok := r.Context().Value(middleware.UserIDCtxKey).(uint32)
+		if !ok {
+			http.Error(
+				w,
+				"no user id provided",
+				http.StatusInternalServerError,
+			)
+			return
+		}
 
-		shortenURL, err := urltrans.GetShortURL(s, longURL, baseURL)
+		shortURLID, shortenURL, err := shorten.GetShortURL(s, longURL, userID, baseURL)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		err = s.AddURL(r.Context(), longURL, shortURLID, userID)
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		w.WriteHeader(http.StatusCreated)
+		var status int = http.StatusCreated
+		if errors.Is(err, storage.ErrUniqueViolation) {
+			status = http.StatusConflict
+		}
+		w.WriteHeader(status)
 		w.Write([]byte(shortenURL))
 		// я думал, что после вызова Write сразу отправляется ответ, но
 		// оказалось, что я был не прав...

@@ -1,13 +1,15 @@
 package routes
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
 	"testing"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
-	"github.com/blokhinnv/shorty/internal/app/urltrans"
+	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
+	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/go-resty/resty/v2"
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
@@ -15,19 +17,19 @@ import (
 )
 
 // Тесты для POST-запроса
-func ShortenTestLogic(t *testing.T) {
+func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
 	// Если стартануть сервер cmd/shortener/main,
 	// то будет использоваться его роутинг даже в тестах :о
-	s := db.NewDBStorage(flagCfg)
-	defer s.Close()
-	r := NewRouter(s, serverCfg)
+	s := db.NewDBStorage(testCfg.serverCfg)
+	defer s.Close(context.Background())
+	r := NewRouter(s, testCfg.serverCfg)
 
-	ts := NewServerWithPort(r, port)
+	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
 	defer ts.Close()
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
-	shortURL, err := urltrans.GetShortURL(s, longURL, baseURL)
+	_, shortURL, err := shorten.GetShortURL(s, longURL, userID, testCfg.baseURL)
 	require.NoError(t, err)
 
 	type want struct {
@@ -36,9 +38,10 @@ func ShortenTestLogic(t *testing.T) {
 		contentType string
 	}
 	tests := []struct {
-		name    string
-		longURL string
-		want    want
+		name       string
+		longURL    string
+		want       want
+		clearAfter bool
 	}{
 		{
 			// тело запроса = url для сокращения
@@ -49,6 +52,7 @@ func ShortenTestLogic(t *testing.T) {
 				result:      shortURL,
 				contentType: "text/plain; charset=utf-8",
 			},
+			clearAfter: true,
 		},
 		{
 			// тело запроса имеет вид url=url для сокращения
@@ -61,6 +65,7 @@ func ShortenTestLogic(t *testing.T) {
 				result:      shortURL,
 				contentType: "text/plain; charset=utf-8",
 			},
+			clearAfter: false,
 		},
 		{
 			// некорректный запрос (содержит ;)
@@ -71,6 +76,7 @@ func ShortenTestLogic(t *testing.T) {
 				result:      fmt.Sprintf("Incorrent request body: url=%v;", longURL),
 				contentType: "text/plain; charset=utf-8",
 			},
+			clearAfter: false,
 		},
 		{
 			// некорректный URL
@@ -81,12 +87,28 @@ func ShortenTestLogic(t *testing.T) {
 				result:      fmt.Sprintf("not an URL: %v", "some\u1234NonUrlText"),
 				contentType: "text/plain; charset=utf-8",
 			},
+			clearAfter: false,
+		},
+		{
+			// повторный запрос
+			name:    "test_duplicated",
+			longURL: longURL,
+			want: want{
+				statusCode:  http.StatusConflict,
+				result:      shortURL,
+				contentType: "text/plain; charset=utf-8",
+			},
+			clearAfter: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client := resty.New()
+			client.SetCookie(&http.Cookie{
+				Name:  middleware.UserTokenCookieName,
+				Value: userToken,
+			})
 			res, err := client.R().
 				SetBody(strings.NewReader(tt.longURL)).
 				Post(ts.URL)
@@ -97,16 +119,24 @@ func ShortenTestLogic(t *testing.T) {
 
 			resShortURL := res.Body()
 			assert.Equal(t, tt.want.result, IPToLocalhost(strings.TrimSpace(string(resShortURL))))
+			if tt.clearAfter {
+				s.Clear(context.Background())
+			}
 		})
 	}
 }
 
 func Test_Shorten_SQLite(t *testing.T) {
 	godotenv.Load("test_sqlite.env")
-	ShortenTestLogic(t)
+	ShortenTestLogic(t, NewTestConfig())
 }
 
 func Test_Shorten_Text(t *testing.T) {
 	godotenv.Load("test_text.env")
-	ShortenTestLogic(t)
+	ShortenTestLogic(t, NewTestConfig())
 }
+
+// func Test_Shorten_Postgres(t *testing.T) {
+// 	godotenv.Load("test_postgres.env")
+// 	ShortenTestLogic(t, NewTestConfig())
+// }
