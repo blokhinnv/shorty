@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"log"
 
-	postgres "github.com/blokhinnv/shorty/internal/app/database/postgres"
-	sqlite "github.com/blokhinnv/shorty/internal/app/database/sqlite"
-	text "github.com/blokhinnv/shorty/internal/app/database/text"
+	"github.com/blokhinnv/shorty/internal/app/database/postgres"
+	"github.com/blokhinnv/shorty/internal/app/database/sqlite"
+	"github.com/blokhinnv/shorty/internal/app/database/text"
 	"github.com/blokhinnv/shorty/internal/app/server/config"
-	storage "github.com/blokhinnv/shorty/internal/app/storage"
+	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 
 // Определяет, какой тип хранилища надо использовать
 // на основе конфига
-func inferStorageType(cfg config.ServerConfig) int {
+func inferStorageType(cfg *config.ServerConfig) int {
 	switch {
 	case cfg.PostgresDatabaseDSN != "":
 		return Postgres
@@ -36,29 +36,21 @@ func inferStorageType(cfg config.ServerConfig) int {
 }
 
 // Конструктор хранилища на основе БД
-func NewDBStorage(cfg config.ServerConfig) storage.Storage {
-	var storage storage.Storage
-	var err error
-
+func NewDBStorage(cfg *config.ServerConfig) (storage.Storage, error) {
 	storageType := inferStorageType(cfg)
 	switch storageType {
 	case SQLite:
 		sqliteConfig := sqlite.GetSQLiteConfig(cfg)
 		log.Printf("Starting SQLiteStorage with config %+v\n", sqliteConfig)
-		storage, err = sqlite.NewSQLiteStorage(sqliteConfig)
+		return sqlite.NewSQLiteStorage(sqliteConfig)
 	case Postgres:
 		postgresConfig := postgres.GetPostgresConfig(cfg)
 		log.Printf("Starting PostgreStorage with config %+v\n", postgresConfig)
-		storage, err = postgres.NewPostgresStorage(postgresConfig)
+		return postgres.NewPostgresStorage(postgresConfig)
 	case Text:
 		textStorageConfig := text.GetTextStorageConfig(cfg)
 		log.Printf("Starting TextStorage with config %+v\n", textStorageConfig)
-		storage, err = text.NewTextStorage(textStorageConfig)
-	default:
-		panic(fmt.Sprintf("unknown storage type %v", storageType))
+		return text.NewTextStorage(textStorageConfig)
 	}
-	if err != nil {
-		panic(fmt.Sprintf("can't create a storage: %v", err.Error()))
-	}
-	return storage
+	return nil, fmt.Errorf("unknown storage type %v", storageType)
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
@@ -59,7 +60,7 @@ func (h *GetShortURLsBatchHandler) addURLs(
 		)
 	}
 	err := h.s.AddURLBatch(ctx, urlIDs, userID)
-	var status int = http.StatusCreated
+	status := http.StatusCreated
 	if err != nil {
 		if errors.Is(err, storage.ErrUniqueViolation) {
 			status = http.StatusConflict
@@ -71,6 +72,8 @@ func (h *GetShortURLsBatchHandler) addURLs(
 }
 
 func (h *GetShortURLsBatchHandler) Handler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
 	// Проверяем заголовки запроса
 	if r.Header.Get("Content-Type") != "application/json" {
 		http.Error(
@@ -109,7 +112,7 @@ func (h *GetShortURLsBatchHandler) Handler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 	// Получаем baseURL и идентифицируем пользователя
-	baseURL, ok := r.Context().Value(middleware.BaseURLCtxKey).(string)
+	baseURL, ok := ctx.Value(middleware.BaseURLCtxKey).(string)
 	if !ok {
 		http.Error(
 			w,
@@ -120,7 +123,7 @@ func (h *GetShortURLsBatchHandler) Handler(w http.ResponseWriter, r *http.Reques
 	}
 	// В этом месте уже обязательно должно быть ясно
 	// для кого мы готовим ответ
-	userID, ok := r.Context().Value(middleware.UserIDCtxKey).(uint32)
+	userID, ok := ctx.Value(middleware.UserIDCtxKey).(uint32)
 	if !ok {
 		http.Error(
 			w,
@@ -129,7 +132,7 @@ func (h *GetShortURLsBatchHandler) Handler(w http.ResponseWriter, r *http.Reques
 		)
 		return
 	}
-	result, status, err := h.addURLs(r.Context(), bodyDecoded, userID, baseURL)
+	result, status, err := h.addURLs(ctx, bodyDecoded, userID, baseURL)
 	if err != nil {
 		http.Error(w, http.StatusText(status), status)
 	}

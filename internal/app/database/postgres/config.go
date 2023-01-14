@@ -1,4 +1,4 @@
-package database
+package postgres
 
 import (
 	"github.com/blokhinnv/shorty/internal/app/server/config"
@@ -11,8 +11,8 @@ type PostgresConfig struct {
 }
 
 // Конструктор конфига Postgres на основе конфига сервера
-func GetPostgresConfig(cfg config.ServerConfig) PostgresConfig {
-	return PostgresConfig{
+func GetPostgresConfig(cfg *config.ServerConfig) *PostgresConfig {
+	return &PostgresConfig{
 		DatabaseDSN:  cfg.PostgresDatabaseDSN,
 		ClearOnStart: cfg.PostgresClearOnStart,
 	}

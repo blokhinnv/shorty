@@ -1,11 +1,11 @@
 // Пакет для создания БД - хранилища URL
-package database
+package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/jackc/pgx/v5"
@@ -25,11 +25,10 @@ type PostgresStorage struct {
 }
 
 // Конструктор нового хранилища URL
-func NewPostgresStorage(conf PostgresConfig) (*PostgresStorage, error) {
+func NewPostgresStorage(conf *PostgresConfig) (*PostgresStorage, error) {
 	conn, err := pgx.Connect(context.Background(), conf.DatabaseDSN)
 	if err != nil {
 		log.Fatalf("can't access to DB %s: %v\n", conf.DatabaseDSN, err)
-		os.Exit(1)
 	}
 	InitDB(conn, conf.ClearOnStart)
 
@@ -41,7 +40,8 @@ func (s *PostgresStorage) AddURL(ctx context.Context, url, urlID string, userID 
 	_, err := s.conn.Exec(ctx, insertSQL, url, urlID, userID)
 	if err != nil {
 		log.Printf("Error while adding URL: %v", err)
-		if pgerr, ok := err.(*pgconn.PgError); ok {
+		var pgerr *pgconn.PgError
+		if errors.As(err, &pgerr) {
 			if pgerr.Code == uniqueViolationCode {
 				return fmt.Errorf(
 					"%w: url=%v, urlID=%v, userID=%v",

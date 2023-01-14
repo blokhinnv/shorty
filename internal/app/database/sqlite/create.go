@@ -1,4 +1,4 @@
-package database
+package sqlite
 
 import (
 	"database/sql"
@@ -35,10 +35,8 @@ func InitDB(dbFile string, clearOnStart bool) {
 	db, err := sql.Open("sqlite3", dbFile)
 	if err != nil {
 		log.Fatalf("can't access to DB %s: %v\n", dbFile, err)
-		os.Exit(1)
 	}
 	if _, err = db.Exec(createSQL); err != nil {
 		log.Fatalf("can't create table Url: %v\n", err)
-		os.Exit(1)
 	}
 }

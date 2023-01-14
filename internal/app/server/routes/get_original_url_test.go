@@ -16,7 +16,10 @@ import (
 
 // Тесты для GET-запроса
 func LengthenTestLogic(t *testing.T, testCfg TestConfig) {
-	s := db.NewDBStorage(testCfg.serverCfg)
+	s, err := db.NewDBStorage(testCfg.serverCfg)
+	if err != nil {
+		panic(err)
+	}
 	defer s.Close(context.Background())
 	r := NewRouter(s, testCfg.serverCfg)
 	ts := NewServerWithPort(r, testCfg.host, testCfg.port)

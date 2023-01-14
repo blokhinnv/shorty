@@ -1,15 +1,14 @@
 package routes
 
 import (
+	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
-	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
@@ -26,8 +25,9 @@ type (
 // запроса JSON-объект {"url":"<some_url>"} и возвращающий
 // в ответ объект {"result":"<shorten_url>"}.
 func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {
-
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
 		// Проверяем заголовки запроса
 		if r.Header.Get("Content-Type") != "application/json" {
 			http.Error(
@@ -57,36 +57,13 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 		}
 		// Сокращаем URL
 		longURL := bodyDecoded.URL
-		baseURL, ok := r.Context().Value(middleware.BaseURLCtxKey).(string)
-		if !ok {
-			http.Error(
-				w,
-				http.StatusText(http.StatusInternalServerError),
-				http.StatusInternalServerError,
-			)
-			return
-		}
-		// В этом месте уже обязательно должно быть ясно
-		// для кого мы готовим ответ
-		userID, ok := r.Context().Value(middleware.UserIDCtxKey).(uint32)
-		if !ok {
-			http.Error(
-				w,
-				"no user id provided",
-				http.StatusInternalServerError,
-			)
-			return
-		}
-
-		shortURLID, shortenURL, err := shorten.GetShortURL(s, longURL, userID, baseURL)
+		shortenURL, status, err := shortenURLLogic(ctx, w, s, longURL)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		err = s.AddURL(r.Context(), longURL, shortURLID, userID)
-		var status int = http.StatusCreated
-		if errors.Is(err, storage.ErrUniqueViolation) {
-			status = http.StatusConflict
+			http.Error(
+				w,
+				err.Error(),
+				status,
+			)
 		}
 		// Кодируем результат в виде JSON ...
 		shortenURLEncoded, err := json.Marshal(ShortJSONResponse{shortenURL})

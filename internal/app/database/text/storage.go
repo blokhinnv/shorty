@@ -1,5 +1,5 @@
 // Пакет для создания текстового хранилища URL
-package database
+package text
 
 import (
 	"bytes"
@@ -41,7 +41,7 @@ type TextStorageRequest struct {
 }
 
 // Конструктор нового хранилища URL
-func NewTextStorage(conf TextStorageConfig) (*TextStorage, error) {
+func NewTextStorage(conf *TextStorageConfig) (*TextStorage, error) {
 	if conf.ClearOnStart {
 		os.Remove(conf.FileStoragePath)
 	}

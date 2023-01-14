@@ -1,4 +1,4 @@
-package database
+package sqlite
 
 import "github.com/blokhinnv/shorty/internal/app/server/config"
 
@@ -8,6 +8,6 @@ type SQLiteConfig struct {
 }
 
 // Конструктор конфига SQLite на основе конфига сервера
-func GetSQLiteConfig(cfg config.ServerConfig) SQLiteConfig {
-	return SQLiteConfig{DBPath: cfg.SQLiteDBPath, ClearOnStart: cfg.SQLiteClearOnStart}
+func GetSQLiteConfig(cfg *config.ServerConfig) *SQLiteConfig {
+	return &SQLiteConfig{DBPath: cfg.SQLiteDBPath, ClearOnStart: cfg.SQLiteClearOnStart}
 }

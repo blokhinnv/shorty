@@ -26,7 +26,7 @@ var NoRedirectPolicy = resty.RedirectPolicyFunc(func(req *http.Request, via []*h
 
 // Конфиг для запуска тестов
 type TestConfig struct {
-	serverCfg config.ServerConfig
+	serverCfg *config.ServerConfig
 	host      string
 	port      string
 	baseURL   string
@@ -34,8 +34,11 @@ type TestConfig struct {
 
 // Конструктор конфига для запуска тестов
 func NewTestConfig() TestConfig {
-	var flagCfg = config.FlagConfig{} // будем считать, что в тестах флаги не используются
-	var serverCfg = config.NewServerConfig(&flagCfg)
+	flagCfg := config.FlagConfig{} // будем считать, что в тестах флаги не используются
+	serverCfg, err := config.NewServerConfig(&flagCfg)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 	return TestConfig{
 		serverCfg: serverCfg,
 		host:      serverCfg.ServerAddress,

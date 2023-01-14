@@ -1,14 +1,10 @@
 // Пакет для создания БД - хранилища URL
-
-// Пока не понимаю, какое должно быть хранилище
-// создаю структуру UrlStorage, которая реализует
-// интерфейс Storage. Если БД использовать нельзя,
-// создам что-то другое, реализующее тот же интерфейс
-package database
+package sqlite
 
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 
@@ -28,7 +24,7 @@ type SQLiteStorage struct {
 }
 
 // Конструктор нового хранилища URL
-func NewSQLiteStorage(conf SQLiteConfig) (*SQLiteStorage, error) {
+func NewSQLiteStorage(conf *SQLiteConfig) (*SQLiteStorage, error) {
 	InitDB(conf.DBPath, conf.ClearOnStart)
 	db, err := sql.Open("sqlite3", conf.DBPath)
 	if err != nil {
@@ -140,7 +136,8 @@ func (s *SQLiteStorage) AddURLBatch(
 		// шаг 3 — указываем, что каждая запись будет добавлена в транзакцию
 		if _, err := stmt.ExecContext(ctx, url, urlID, userID); err != nil {
 			log.Println("unable to add row: ", err)
-			if sqlerr, ok := err.(sqlite3.Error); ok {
+			var sqlerr sqlite3.Error
+			if errors.As(err, &sqlerr) {
 				if sqlerr.Code == sqlite3.ErrConstraint {
 					return fmt.Errorf(
 						"%w: url=%v, urlID=%v, userID=%v",

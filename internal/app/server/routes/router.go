@@ -9,7 +9,7 @@ import (
 )
 
 // Конструктор нового маршрутизатора
-func NewRouter(storage storage.Storage, cfg config.ServerConfig) chi.Router {
+func NewRouter(storage storage.Storage, cfg *config.ServerConfig) chi.Router {
 	authentifier := m.NewAuth([]byte(cfg.SecretKey))
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
