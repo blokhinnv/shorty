@@ -12,7 +12,6 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/go-resty/resty/v2"
-	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -41,7 +40,10 @@ func ListOfURLsTestLogic(t *testing.T, testCfg TestConfig) {
 	if err != nil {
 		panic(err)
 	}
-	defer s.Close(context.Background())
+	defer func() {
+		s.Clear(context.Background())
+		s.Close(context.Background())
+	}()
 	r := NewRouter(s, testCfg.serverCfg)
 	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
 	defer ts.Close()
@@ -107,16 +109,13 @@ func ListOfURLsTestLogic(t *testing.T, testCfg TestConfig) {
 }
 
 func Test_ListOfURLs_SQLite(t *testing.T) {
-	godotenv.Load("test_sqlite.env")
-	ListOfURLsTestLogic(t, NewTestConfig())
+	ListOfURLsTestLogic(t, NewTestConfig("test_sqlite.env"))
 }
 
 func Test_ListOfURLs_Text(t *testing.T) {
-	godotenv.Load("test_text.env")
-	ListOfURLsTestLogic(t, NewTestConfig())
+	ListOfURLsTestLogic(t, NewTestConfig("test_text.env"))
 }
 
 // func Test_ListOfURLs_Postgres(t *testing.T) {
-// 	godotenv.Load("test_postgres.env")
-// 	ListOfURLsTestLogic(t, NewTestConfig())
+// 	ListOfURLsTestLogic(t, NewTestConfig("test_postgres.env"))
 // }

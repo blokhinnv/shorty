@@ -2,6 +2,7 @@ package routes
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -31,6 +32,10 @@ func GetOriginalURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 		}
 		rec, err := s.GetURLByID(ctx, urlID)
 		if err != nil {
+			if errors.Is(err, storage.ErrURLWasDeleted) {
+				http.Error(w, err.Error(), http.StatusGone)
+				return
+			}
 			http.Error(w, err.Error(), http.StatusNoContent)
 			return
 		}

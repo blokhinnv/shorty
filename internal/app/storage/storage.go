@@ -16,6 +16,8 @@ type Storage interface {
 	GetURLByID(ctx context.Context, urlID string) (Record, error)
 	// Получает URLs по ID пользователя
 	GetURLsByUser(ctx context.Context, userID uint32) ([]Record, error)
+	// Устанавливает отметку об удалении URL
+	DeleteMany(ctx context.Context, userID uint32, urlIDs []string) error
 	// Проверяет соединение с хранилищем
 	Ping(ctx context.Context) bool
 	// Очищает хранилище
@@ -26,3 +28,4 @@ type Storage interface {
 
 var ErrURLWasNotFound = errors.New("requested URL was not found")
 var ErrUniqueViolation = errors.New("duplicate key value violates unique constraint")
+var ErrURLWasDeleted = errors.New("requested url was deleted")

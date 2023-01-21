@@ -6,11 +6,13 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 
 	"github.com/blokhinnv/shorty/internal/app/server/config"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-resty/resty/v2"
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -32,8 +34,29 @@ type TestConfig struct {
 	baseURL   string
 }
 
+func unsetTestEnv() {
+	for _, envName := range []string{
+		"SQLITE_DB_PATH",
+		"SQLITE_CLEAR_ON_START",
+		"DATABASE_DSN",
+		"PG_CLEAR_ON_START",
+		"FILE_STORAGE_PATH",
+		"FILE_STORAGE_CLEAR_ON_START",
+		"FILE_STORAGE_TTL_ON_DISK",
+		"FILE_STORAGE_TTL_IN_MEMORY",
+		"SERVER_ADDRESS",
+		"BASE_URL",
+		"SECRET_KEY",
+	} {
+		os.Unsetenv(envName)
+	}
+
+}
+
 // Конструктор конфига для запуска тестов
-func NewTestConfig() TestConfig {
+func NewTestConfig(envPath string) TestConfig {
+	unsetTestEnv()
+	godotenv.Load(envPath)
 	flagCfg := config.FlagConfig{} // будем считать, что в тестах флаги не используются
 	serverCfg, err := config.NewServerConfig(&flagCfg)
 	if err != nil {

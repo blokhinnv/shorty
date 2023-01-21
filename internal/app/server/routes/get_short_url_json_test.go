@@ -11,7 +11,6 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/go-resty/resty/v2"
-	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -24,7 +23,10 @@ func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
 	if err != nil {
 		panic(err)
 	}
-	defer s.Close(context.Background())
+	defer func() {
+		s.Clear(context.Background())
+		s.Close(context.Background())
+	}()
 	r := NewRouter(s, testCfg.serverCfg)
 	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
 	defer ts.Close()
@@ -153,16 +155,13 @@ func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
 }
 
 func Test_ShortenAPI_SQLite(t *testing.T) {
-	godotenv.Load("test_sqlite.env")
-	ShortenAPITestLogic(t, NewTestConfig())
+	ShortenAPITestLogic(t, NewTestConfig("test_sqlite.env"))
 }
 
 func Test_ShortenAPI_Text(t *testing.T) {
-	godotenv.Load("test_text.env")
-	ShortenAPITestLogic(t, NewTestConfig())
+	ShortenAPITestLogic(t, NewTestConfig("test_text.env"))
 }
 
 // func Test_ShortenAPI_Postgres(t *testing.T) {
-// 	godotenv.Load("test_postgres.env")
-// 	ShortenAPITestLogic(t, NewTestConfig())
+// 	ShortenAPITestLogic(t, NewTestConfig("test_postgres.env"))
 // }

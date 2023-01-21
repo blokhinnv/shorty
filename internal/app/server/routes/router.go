@@ -22,6 +22,7 @@ func NewRouter(storage storage.Storage, cfg *config.ServerConfig) chi.Router {
 		r.Get("/{idURL}", GetOriginalURLHandlerFunc(storage))
 		r.Route("/api", func(r chi.Router) {
 			r.Get("/user/urls", GetOriginalURLsHandlerFunc(storage))
+			r.Delete("/user/urls", NewDeleteURLsHandler(storage, 100).Handler)
 			r.Post("/shorten", GetShortURLAPIHandlerFunc(storage))
 			r.Post("/shorten/batch", NewGetShortURLsBatchHandler(storage).Handler)
 		})

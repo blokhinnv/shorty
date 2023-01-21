@@ -8,4 +8,5 @@ type Record struct {
 	UserID      uint32    `json:"user_id"`
 	Added       time.Time `json:"added"`
 	RequestedAt time.Time `json:"requested_at"`
+	IsDeleted   bool      `json:"is_deleted"`
 }

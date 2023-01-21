@@ -16,8 +16,9 @@ CREATE TABLE Url(
 	url VARCHAR NOT NULL,
 	url_id VARCHAR NOT NULL,
 	user_id INT NOT NULL,
-	added VARCHAR,
-	requested_at VARCHAR
+	added VARCHAR DEFAULT (datetime('now','localtime')),
+	requested_at VARCHAR DEFAULT (datetime('now','localtime')),
+	is_deleted BOOLEAN DEFAULT FALSE
 );
 CREATE UNIQUE INDEX idx_url ON Url(url);
 `
@@ -26,7 +27,10 @@ CREATE UNIQUE INDEX idx_url ON Url(url);
 func InitDB(dbFile string, clearOnStart bool) {
 	// Проверка существования БД
 	if clearOnStart {
-		os.Remove(dbFile)
+		err := os.Remove(dbFile)
+		if err != nil {
+			log.Fatalf("ClearOnStart error: %v", err)
+		}
 	}
 	if _, err := os.Stat(dbFile); err == nil {
 		return
@@ -36,6 +40,7 @@ func InitDB(dbFile string, clearOnStart bool) {
 	if err != nil {
 		log.Fatalf("can't access to DB %s: %v\n", dbFile, err)
 	}
+	defer db.Close()
 	if _, err = db.Exec(createSQL); err != nil {
 		log.Fatalf("can't create table Url: %v\n", err)
 	}

@@ -2,6 +2,7 @@ package routes
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -9,18 +10,21 @@ import (
 	db "github.com/blokhinnv/shorty/internal/app/database"
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/go-resty/resty/v2"
-	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 )
 
 func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
 	// Если стартануть сервер cmd/shortener/main,
 	// то будет использоваться его роутинг даже в тестах :о
+
 	s, err := db.NewDBStorage(testCfg.serverCfg)
 	if err != nil {
 		panic(err)
 	}
-	defer s.Close(context.Background())
+	defer func() {
+		s.Clear(context.Background())
+		s.Close(context.Background())
+	}()
 	r := NewRouter(s, testCfg.serverCfg)
 	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
 	defer ts.Close()
@@ -117,16 +121,14 @@ func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
 }
 
 func Test_ShortenBatch_SQLite(t *testing.T) {
-	godotenv.Load("test_sqlite.env")
-	ShortenBatchTestLogic(t, NewTestConfig())
+	fmt.Println("RUN Test_ShortenBatch_SQLite")
+	ShortenBatchTestLogic(t, NewTestConfig("test_sqlite.env"))
 }
 
 func Test_ShortenBatch_Text(t *testing.T) {
-	godotenv.Load("test_text.env")
-	ShortenBatchTestLogic(t, NewTestConfig())
+	ShortenBatchTestLogic(t, NewTestConfig("test_text.env"))
 }
 
 // func Test_ShortenBatch_Postgres(t *testing.T) {
-// 	godotenv.Load("test_postgres.env")
-// 	ShortenBatchTestLogic(t, NewTestConfig())
+// 	ShortenBatchTestLogic(t, NewTestConfig("test_postgres.env"))
 // }
