@@ -37,7 +37,7 @@ func InitDB(conn *pgxpool.Pool, clearOnStart bool) {
 	if err := conn.QueryRow(context.Background(), existsSQL).Scan(&exists); err != nil {
 		log.Fatalf("can't create table Url: %v\n", err)
 	}
-	if exists && clearOnStart {
+	if !exists || clearOnStart {
 		if _, err := conn.Exec(context.Background(), createSQL); err != nil {
 			log.Fatalf("can't create table Url: %v\n", err)
 		}
