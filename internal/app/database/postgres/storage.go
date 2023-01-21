@@ -29,6 +29,7 @@ type PostgresStorage struct {
 
 // Конструктор нового хранилища URL
 func NewPostgresStorage(conf *PostgresConfig) (*PostgresStorage, error) {
+	// до реализации удаления работало так:
 	// conn, err := pgx.Connect(context.Background(), conf.DatabaseDSN)
 	// if err != nil {
 	// 	log.Fatalf("can't access to DB %s: %v\n", conf.DatabaseDSN, err)
@@ -90,7 +91,6 @@ func (s *PostgresStorage) GetURLByID(ctx context.Context, urlID string) (storage
 	err := s.conn.QueryRow(ctx, selectByURLIDSQL, urlID).
 		Scan(&rec.URL, &rec.UserID, &isDeleted)
 
-	log.Printf("!!!GET %v %+v %v\n", err, rec, isDeleted)
 	// любая ошибка здесь (в т.ч. ErrNoRows) означает, что результат не найден
 	if err != nil {
 		return storage.Record{}, storage.ErrURLWasNotFound
