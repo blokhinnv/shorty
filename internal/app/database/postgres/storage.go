@@ -10,6 +10,7 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const (
@@ -23,15 +24,25 @@ const (
 )
 
 type PostgresStorage struct {
-	conn *pgx.Conn
+	conn *pgxpool.Pool
 }
 
 // Конструктор нового хранилища URL
 func NewPostgresStorage(conf *PostgresConfig) (*PostgresStorage, error) {
-	conn, err := pgx.Connect(context.Background(), conf.DatabaseDSN)
+	// conn, err := pgx.Connect(context.Background(), conf.DatabaseDSN)
+	// if err != nil {
+	// 	log.Fatalf("can't access to DB %s: %v\n", conf.DatabaseDSN, err)
+	// }
+	poolConfig, err := pgxpool.ParseConfig(conf.DatabaseDSN)
 	if err != nil {
-		log.Fatalf("can't access to DB %s: %v\n", conf.DatabaseDSN, err)
+		log.Fatalln("Unable to parse DATABASE_URL:", err)
 	}
+
+	conn, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
+	if err != nil {
+		log.Fatalln("Unable to create connection pool:", err)
+	}
+
 	InitDB(conn, conf.ClearOnStart)
 
 	return &PostgresStorage{conn}, nil
@@ -78,6 +89,8 @@ func (s *PostgresStorage) GetURLByID(ctx context.Context, urlID string) (storage
 	var isDeleted bool
 	err := s.conn.QueryRow(ctx, selectByURLIDSQL, urlID).
 		Scan(&rec.URL, &rec.UserID, &isDeleted)
+
+	log.Printf("!!!GET %v %+v %v\n", err, rec, isDeleted)
 	// любая ошибка здесь (в т.ч. ErrNoRows) означает, что результат не найден
 	if err != nil {
 		return storage.Record{}, storage.ErrURLWasNotFound
@@ -191,7 +204,7 @@ func (s *PostgresStorage) DeleteMany(ctx context.Context, userID uint32, urlIDs 
 
 // Закрывает соединение с Postgres
 func (s *PostgresStorage) Close(ctx context.Context) {
-	s.conn.Close(ctx)
+	s.conn.Close()
 }
 
 // Проверяет соединение с хранилищем

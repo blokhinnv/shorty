@@ -2,7 +2,6 @@ package routes
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 	"testing"
@@ -121,7 +120,6 @@ func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
 }
 
 func Test_ShortenBatch_SQLite(t *testing.T) {
-	fmt.Println("RUN Test_ShortenBatch_SQLite")
 	ShortenBatchTestLogic(t, NewTestConfig("test_sqlite.env"))
 }
 

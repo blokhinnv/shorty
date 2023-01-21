@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // SQL-запрос для создания таблицы для Url
@@ -32,15 +32,14 @@ SELECT EXISTS (
 `
 
 // При инициализации создадим БД, если ее не существует
-func InitDB(conn *pgx.Conn, clearOnStart bool) {
+func InitDB(conn *pgxpool.Pool, clearOnStart bool) {
 	var exists bool
 	if err := conn.QueryRow(context.Background(), existsSQL).Scan(&exists); err != nil {
 		log.Fatalf("can't create table Url: %v\n", err)
 	}
-	if !exists || clearOnStart {
+	if exists && clearOnStart {
 		if _, err := conn.Exec(context.Background(), createSQL); err != nil {
 			log.Fatalf("can't create table Url: %v\n", err)
-
 		}
 	}
 }

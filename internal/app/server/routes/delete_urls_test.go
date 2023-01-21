@@ -20,8 +20,6 @@ import (
 func DeleteTestLogic(t *testing.T, testCfg TestConfig) {
 	// Если стартануть сервер cmd/shortener/main,
 	// то будет использоваться его роутинг даже в тестах :о
-	fmt.Printf("FROM DEL %+v\n", testCfg.serverCfg)
-
 	s, err := db.NewDBStorage(testCfg.serverCfg)
 	if err != nil {
 		panic(err)

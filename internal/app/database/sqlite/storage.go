@@ -141,7 +141,6 @@ func (s *SQLiteStorage) AddURLBatch(
 	defer stmtRestore.Close()
 
 	for url, urlID := range urlIDs {
-		fmt.Println("loop", url, urlID)
 		// пытаемся сбросить флаг об удалении
 		res, err := stmtRestore.ExecContext(ctx, userID, urlID)
 		if err != nil {
