@@ -26,14 +26,11 @@ CREATE UNIQUE INDEX idx_url ON Url(url);
 // При инициализации создадим БД, если ее не существует
 func InitDB(dbFile string, clearOnStart bool) {
 	// Проверка существования БД
-	if clearOnStart {
+	if _, err := os.Stat(dbFile); err == nil && clearOnStart {
 		err := os.Remove(dbFile)
 		if err != nil {
 			log.Fatalf("ClearOnStart error: %v", err)
 		}
-	}
-	if _, err := os.Stat(dbFile); err == nil {
-		return
 	}
 	// Создание таблицы в БД
 	db, err := sql.Open("sqlite3", dbFile)
