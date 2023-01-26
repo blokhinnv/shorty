@@ -12,8 +12,11 @@ import (
 )
 
 // Создает хранилище и запускает сервер
-func RunServer(cfg config.ServerConfig) {
-	s := database.NewDBStorage(cfg)
+func RunServer(cfg *config.ServerConfig) {
+	s, err := database.NewDBStorage(cfg)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 	defer s.Close(context.Background())
 	r := routes.NewRouter(s, cfg)
 	log.Printf("Starting server with config %+v\n", cfg)

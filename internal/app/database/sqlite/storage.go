@@ -1,14 +1,10 @@
 // Пакет для создания БД - хранилища URL
-
-// Пока не понимаю, какое должно быть хранилище
-// создаю структуру UrlStorage, которая реализует
-// интерфейс Storage. Если БД использовать нельзя,
-// создам что-то другое, реализующее тот же интерфейс
-package database
+package sqlite
 
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 
@@ -17,10 +13,12 @@ import (
 )
 
 const (
-	selectByURLIDSQL  = "SELECT url, user_id FROM Url WHERE url_id = ?"
-	selectByUserIDSQL = "SELECT url, url_id FROM Url WHERE user_id = ?"
+	selectByURLIDSQL  = "SELECT url, user_id, is_deleted FROM Url WHERE url_id = ?"
+	selectByUserIDSQL = "SELECT url, url_id, is_deleted FROM Url WHERE user_id = ?"
 	insertSQL         = "INSERT INTO Url(url, url_id, user_id) VALUES (?, ?, ?)"
+	deleteByURLIDSQL  = "UPDATE Url SET is_deleted=TRUE WHERE url_id=? AND user_id=? RETURNING url;"
 	clearSQL          = "DELETE FROM Url"
+	restoreSQL        = "UPDATE Url SET is_deleted=FALSE, user_id=? WHERE url_id=? AND is_deleted=TRUE;"
 )
 
 type SQLiteStorage struct {
@@ -28,7 +26,7 @@ type SQLiteStorage struct {
 }
 
 // Конструктор нового хранилища URL
-func NewSQLiteStorage(conf SQLiteConfig) (*SQLiteStorage, error) {
+func NewSQLiteStorage(conf *SQLiteConfig) (*SQLiteStorage, error) {
 	InitDB(conf.DBPath, conf.ClearOnStart)
 	db, err := sql.Open("sqlite3", conf.DBPath)
 	if err != nil {
@@ -39,11 +37,22 @@ func NewSQLiteStorage(conf SQLiteConfig) (*SQLiteStorage, error) {
 
 // Метод для добавления нового URL в БД
 func (s *SQLiteStorage) AddURL(ctx context.Context, url, urlID string, userID uint32) error {
-	stmt, err := s.db.PrepareContext(ctx, insertSQL)
+	res, err := s.db.ExecContext(ctx, restoreSQL, userID, urlID)
 	if err != nil {
+		log.Printf("Error while updating URL: %v", err)
 		return err
 	}
-	_, err = stmt.ExecContext(ctx, url, urlID, userID)
+	n, err := res.RowsAffected()
+	if err != nil {
+		log.Printf("Error while updating URL: %v", err)
+		return err
+	}
+	// восстановили запись => добавлять не надо
+	if n > 0 {
+		return nil
+	}
+	// надо добавить
+	_, err = s.db.ExecContext(ctx, insertSQL, url, urlID, userID)
 	if err != nil {
 		log.Printf("Error while adding URL: %v", err)
 		if sqlerr, ok := err.(sqlite3.Error); ok {
@@ -65,25 +74,16 @@ func (s *SQLiteStorage) AddURL(ctx context.Context, url, urlID string, userID ui
 
 // Возвращает URL по его ID в БД
 func (s *SQLiteStorage) GetURLByID(ctx context.Context, urlID string) (storage.Record, error) {
-	// Получаем строки
-	rows, err := s.db.QueryContext(ctx, selectByURLIDSQL, urlID)
+	rec := storage.Record{URLID: urlID}
+	var isDeleted bool
+	err := s.db.QueryRowContext(ctx, selectByURLIDSQL, urlID).
+		Scan(&rec.URL, &rec.UserID, &isDeleted)
+	// любая ошибка здесь (в т.ч. ErrNoRows) означает, что результат не найден
 	if err != nil {
-		return storage.Record{}, err
-	}
-	// не забудем закрыть объект!
-	defer rows.Close()
-
-	// Next подготовит результат и вернет True, если строки есть
-	if !rows.Next() {
 		return storage.Record{}, storage.ErrURLWasNotFound
 	}
-	// Забираем url из первой строки
-	rec := storage.Record{URLID: urlID}
-	if err := rows.Scan(&rec.URL, &rec.UserID); err != nil {
-		return storage.Record{}, err
-	}
-	if err := rows.Err(); err != nil {
-		return storage.Record{}, err
+	if isDeleted {
+		return storage.Record{}, storage.ErrURLWasDeleted
 	}
 	return rec, nil
 }
@@ -102,14 +102,19 @@ func (s *SQLiteStorage) GetURLsByUser(
 	// не забудем закрыть объект!
 	defer rows.Close()
 	for rows.Next() {
+		var isDeleted bool
 		rec := storage.Record{UserID: userID}
-		if err := rows.Scan(&rec.URL, &rec.URLID); err != nil {
+		if err := rows.Scan(&rec.URL, &rec.URLID, &isDeleted); err != nil {
 			return nil, err
 		}
-		if err := rows.Err(); err != nil {
-			return nil, err
+		// После цикла проверяем записи на потенциальные ошибки (разрыв
+		// сетевого соединения с сервером базы данных в процессе получения результатов запроса)
+		if !isDeleted {
+			results = append(results, rec)
 		}
-		results = append(results, rec)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 	if len(results) == 0 {
 		return nil, storage.ErrURLWasNotFound
@@ -123,26 +128,42 @@ func (s *SQLiteStorage) AddURLBatch(
 	urlIDs map[string]string,
 	userID uint32,
 ) error {
-	// шаг 1 — объявляем транзакцию
-	tx, err := s.db.Begin()
+	var violationErr error
+	stmtInsert, err := s.db.PrepareContext(ctx, insertSQL)
 	if err != nil {
 		return err
 	}
-	// шаг 2 — готовим инструкцию
-	stmt, err := tx.PrepareContext(ctx, insertSQL)
+	defer stmtInsert.Close()
+	stmtRestore, err := s.db.PrepareContext(ctx, restoreSQL)
 	if err != nil {
 		return err
 	}
-	// шаг 2.1 — не забываем закрыть инструкцию, когда она больше не нужна
-	defer stmt.Close()
+	defer stmtRestore.Close()
 
 	for url, urlID := range urlIDs {
-		// шаг 3 — указываем, что каждая запись будет добавлена в транзакцию
-		if _, err := stmt.ExecContext(ctx, url, urlID, userID); err != nil {
+		// пытаемся сбросить флаг об удалении
+		res, err := stmtRestore.ExecContext(ctx, userID, urlID)
+		if err != nil {
+			log.Println("unable to update row: ", err)
+			return err
+		}
+		n, err := res.RowsAffected()
+		if err != nil {
+			log.Println("unable to get rows affected: ", err)
+			return err
+		}
+		// нашли удаленную запись для восстановления => добавлять не надо
+		if n > 0 {
+			continue
+		}
+		// не нашли запись для восстановления
+		if _, err := stmtInsert.ExecContext(ctx, url, urlID, userID); err != nil {
 			log.Println("unable to add row: ", err)
-			if sqlerr, ok := err.(sqlite3.Error); ok {
+			var sqlerr sqlite3.Error
+			// она могла быть, но не удаленная, тогда будет нарушение индекса
+			if errors.As(err, &sqlerr) {
 				if sqlerr.Code == sqlite3.ErrConstraint {
-					return fmt.Errorf(
+					violationErr = fmt.Errorf(
 						"%w: url=%v, urlID=%v, userID=%v",
 						storage.ErrUniqueViolation,
 						url,
@@ -150,17 +171,60 @@ func (s *SQLiteStorage) AddURLBatch(
 						userID,
 					)
 				}
+			} else {
+				return err
 			}
-			if err = tx.Rollback(); err != nil {
-				log.Fatalf("update drivers: unable to rollback: %v", err)
+		}
+		log.Println("added row: ", url, urlID, userID)
+	}
+	if violationErr != nil {
+		return violationErr
+	}
+	return nil
+}
+
+func (s *SQLiteStorage) DeleteMany(ctx context.Context, userID uint32, urlIDs []string) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	stmt, err := tx.PrepareContext(ctx, deleteByURLIDSQL)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	updated := make([]string, 0)
+	for _, urlID := range urlIDs {
+		err = func() error {
+			var deletedURL string
+			rows, err := stmt.QueryContext(ctx, urlID, userID)
+			if err != nil {
+				if errRollback := tx.Rollback(); errRollback != nil {
+					log.Fatalf("update drivers: unable to rollback: %v", errRollback)
+				}
+				return err
 			}
+			defer rows.Close()
+			if !rows.Next() {
+				return nil
+			}
+			if err := rows.Scan(&deletedURL); err != nil {
+				return err
+			}
+			if err := rows.Err(); err != nil {
+				return err
+			}
+			updated = append(updated, deletedURL)
+			return nil
+		}()
+		if err != nil {
 			return err
 		}
 	}
-	// шаг 4 — сохраняем изменения
 	if err := tx.Commit(); err != nil {
 		log.Fatalf("update drivers: unable to commit: %v", err)
 	}
+	log.Printf("Set %v as deleted\n", updated)
 	return nil
 }
 

@@ -1,15 +1,14 @@
 package routes
 
 import (
-	"errors"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
-	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
-	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
@@ -18,6 +17,8 @@ import (
 // сокращённым URL в виде текстовой строки в теле.
 func GetShortURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
 		query, _ := io.ReadAll(r.Body)
 		queryParsed, err := url.ParseQuery(string(query))
 		// Нужно учесть некорректные запросы и возвращать для них ответ с кодом 400.
@@ -33,38 +34,15 @@ func GetShortURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.R
 		if longURL == "" {
 			longURL = string(query)
 		}
-		baseURL, ok := r.Context().Value(middleware.BaseURLCtxKey).(string)
-		if !ok {
-			http.Error(
-				w,
-				http.StatusText(http.StatusInternalServerError),
-				http.StatusInternalServerError,
-			)
-			return
-		}
-		// В этом месте уже обязательно должно быть ясно
-		// для кого мы готовим ответ
-		userID, ok := r.Context().Value(middleware.UserIDCtxKey).(uint32)
-		if !ok {
-			http.Error(
-				w,
-				"no user id provided",
-				http.StatusInternalServerError,
-			)
-			return
-		}
-
-		shortURLID, shortenURL, err := shorten.GetShortURL(s, longURL, userID, baseURL)
+		shortenURL, status, err := shortenURLLogic(ctx, w, s, longURL)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+			http.Error(
+				w,
+				err.Error(),
+				status,
+			)
 		}
-		err = s.AddURL(r.Context(), longURL, shortURLID, userID)
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		var status int = http.StatusCreated
-		if errors.Is(err, storage.ErrUniqueViolation) {
-			status = http.StatusConflict
-		}
 		w.WriteHeader(status)
 		w.Write([]byte(shortenURL))
 		// я думал, что после вызова Write сразу отправляется ответ, но

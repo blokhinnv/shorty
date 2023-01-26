@@ -45,16 +45,16 @@ func (cfg *ServerConfig) UpdateFromFlags(flagCfg *FlagConfig) {
 }
 
 // Возвращает конфиг для сервера
-func NewServerConfig(flagCfg *FlagConfig) ServerConfig {
+func NewServerConfig(flagCfg *FlagConfig) (*ServerConfig, error) {
 	cfg := ServerConfig{}
 	if err := env.Parse(&cfg); err != nil {
-		panic(err)
+		return nil, err
 	}
 	cfg.UpdateFromFlags(flagCfg)
 	result, err := govalidator.ValidateStruct(cfg)
 	if err != nil || !result {
-		panic(err)
+		return nil, err
 	}
 	cfg.ServerAddress = regexp.MustCompile(`https?://`).ReplaceAllString(cfg.ServerAddress, "")
-	return cfg
+	return &cfg, nil
 }

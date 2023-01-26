@@ -1,4 +1,4 @@
-package database
+package sqlite
 
 import (
 	"database/sql"
@@ -16,8 +16,9 @@ CREATE TABLE Url(
 	url VARCHAR NOT NULL,
 	url_id VARCHAR NOT NULL,
 	user_id INT NOT NULL,
-	added VARCHAR,
-	requested_at VARCHAR
+	added VARCHAR DEFAULT (datetime('now','localtime')),
+	requested_at VARCHAR DEFAULT (datetime('now','localtime')),
+	is_deleted BOOLEAN DEFAULT FALSE
 );
 CREATE UNIQUE INDEX idx_url ON Url(url);
 `
@@ -25,20 +26,19 @@ CREATE UNIQUE INDEX idx_url ON Url(url);
 // При инициализации создадим БД, если ее не существует
 func InitDB(dbFile string, clearOnStart bool) {
 	// Проверка существования БД
-	if clearOnStart {
-		os.Remove(dbFile)
-	}
-	if _, err := os.Stat(dbFile); err == nil {
-		return
+	if _, err := os.Stat(dbFile); err == nil && clearOnStart {
+		err := os.Remove(dbFile)
+		if err != nil {
+			log.Fatalf("ClearOnStart error: %v", err)
+		}
 	}
 	// Создание таблицы в БД
 	db, err := sql.Open("sqlite3", dbFile)
 	if err != nil {
 		log.Fatalf("can't access to DB %s: %v\n", dbFile, err)
-		os.Exit(1)
 	}
+	defer db.Close()
 	if _, err = db.Exec(createSQL); err != nil {
 		log.Fatalf("can't create table Url: %v\n", err)
-		os.Exit(1)
 	}
 }

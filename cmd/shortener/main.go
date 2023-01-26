@@ -5,6 +5,7 @@ package main
 
 import (
 	"flag"
+	"log"
 	"os"
 
 	s "github.com/blokhinnv/shorty/internal/app/server"
@@ -12,19 +13,18 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var flagCfg = config.FlagConfig{}
-
-func init() {
-	flag.StringVar(&flagCfg.ServerAddress, "a", "", "server address")
-	flag.StringVar(&flagCfg.BaseURL, "b", "", "base url")
+func parseConfig(cfg *config.FlagConfig) {
+	flag.StringVar(&cfg.ServerAddress, "a", "", "server address")
+	flag.StringVar(&cfg.BaseURL, "b", "", "base url")
 	flag.StringVar(
-		&flagCfg.FileStoragePath,
+		&cfg.FileStoragePath,
 		"f",
 		"",
 		"file where the data is stored",
 	)
-	flag.StringVar(&flagCfg.SecretKey, "k", "", "secret key to sign uid cookies")
-	flag.StringVar(&flagCfg.DatabaseDSN, "d", "", "postgres connect string")
+	flag.StringVar(&cfg.SecretKey, "k", "", "secret key to sign uid cookies")
+	flag.StringVar(&cfg.DatabaseDSN, "d", "", "postgres connect string")
+	flag.Parse()
 }
 
 func main() {
@@ -40,7 +40,12 @@ func main() {
 	}
 	// флаги надо собрать в одном месте на старте
 	// и прокидывать через кучу слоев....
-	flag.Parse()
-	serverCfg := config.NewServerConfig(&flagCfg)
+	// раньше это была глобальная переменная для пакета
+	flagCfg := config.FlagConfig{}
+	parseConfig(&flagCfg)
+	serverCfg, err := config.NewServerConfig(&flagCfg)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 	s.RunServer(serverCfg)
 }

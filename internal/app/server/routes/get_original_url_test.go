@@ -9,15 +9,20 @@ import (
 	db "github.com/blokhinnv/shorty/internal/app/database"
 	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/go-resty/resty/v2"
-	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // Тесты для GET-запроса
 func LengthenTestLogic(t *testing.T, testCfg TestConfig) {
-	s := db.NewDBStorage(testCfg.serverCfg)
-	defer s.Close(context.Background())
+	s, err := db.NewDBStorage(testCfg.serverCfg)
+	if err != nil {
+		panic(err)
+	}
+	defer func() {
+		s.Clear(context.Background())
+		s.Close(context.Background())
+	}()
 	r := NewRouter(s, testCfg.serverCfg)
 	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
 	defer ts.Close()
@@ -87,16 +92,13 @@ func LengthenTestLogic(t *testing.T, testCfg TestConfig) {
 }
 
 func Test_Lengthen_SQLite(t *testing.T) {
-	godotenv.Load("test_sqlite.env")
-	LengthenTestLogic(t, NewTestConfig())
+	LengthenTestLogic(t, NewTestConfig("test_sqlite.env"))
 }
 
 func Test_Lengthen_Text(t *testing.T) {
-	godotenv.Load("test_text.env")
-	LengthenTestLogic(t, NewTestConfig())
+	LengthenTestLogic(t, NewTestConfig("test_text.env"))
 }
 
 // func Test_Lengthen_Postgres(t *testing.T) {
-// 	godotenv.Load("test_postgres.env")
-// 	LengthenTestLogic(t, NewTestConfig())
+// 	LengthenTestLogic(t, NewTestConfig("test_postgres.env"))
 // }

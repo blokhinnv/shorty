@@ -1,9 +1,11 @@
 package routes
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/storage"
@@ -17,7 +19,7 @@ type ShortenedURLSAnswer struct {
 
 // Готовит ответ сервера в нужном виде
 func prepareAnswer(records []storage.Record, baseURL string) []ShortenedURLSAnswer {
-	results := make([]ShortenedURLSAnswer, 0)
+	results := make([]ShortenedURLSAnswer, 0, len(records))
 	for _, r := range records {
 		results = append(
 			results,
@@ -31,7 +33,9 @@ func prepareAnswer(records []storage.Record, baseURL string) []ShortenedURLSAnsw
 // пользователю все когда-либо сокращённые им URL
 func GetOriginalURLsHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		baseURL, ok := r.Context().Value(middleware.BaseURLCtxKey).(string)
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+		baseURL, ok := ctx.Value(middleware.BaseURLCtxKey).(string)
 		if !ok {
 			http.Error(
 				w,
@@ -41,7 +45,7 @@ func GetOriginalURLsHandlerFunc(s storage.Storage) func(http.ResponseWriter, *ht
 			return
 		}
 
-		userID, ok := r.Context().Value(middleware.UserIDCtxKey).(uint32)
+		userID, ok := ctx.Value(middleware.UserIDCtxKey).(uint32)
 		if !ok {
 			http.Error(
 				w,
@@ -51,7 +55,7 @@ func GetOriginalURLsHandlerFunc(s storage.Storage) func(http.ResponseWriter, *ht
 			return
 		}
 
-		records, err := s.GetURLsByUser(r.Context(), userID)
+		records, err := s.GetURLsByUser(ctx, userID)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNoContent)
 			return

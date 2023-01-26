@@ -1,10 +1,10 @@
-package database
+package postgres
 
 import (
 	"context"
 	"log"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // SQL-запрос для создания таблицы для Url
@@ -15,8 +15,9 @@ CREATE TABLE Url(
 	url VARCHAR NOT NULL,
 	url_id VARCHAR NOT NULL,
 	user_id BIGINT NOT NULL,
-	added TIMESTAMP,
-	requested_at TIMESTAMP
+	added TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	is_deleted BOOLEAN DEFAULT FALSE
 );
 CREATE UNIQUE INDEX idx_url ON Url(url);
 `
@@ -31,7 +32,7 @@ SELECT EXISTS (
 `
 
 // При инициализации создадим БД, если ее не существует
-func InitDB(conn *pgx.Conn, clearOnStart bool) {
+func InitDB(conn *pgxpool.Pool, clearOnStart bool) {
 	var exists bool
 	if err := conn.QueryRow(context.Background(), existsSQL).Scan(&exists); err != nil {
 		log.Fatalf("can't create table Url: %v\n", err)
@@ -39,7 +40,6 @@ func InitDB(conn *pgx.Conn, clearOnStart bool) {
 	if !exists || clearOnStart {
 		if _, err := conn.Exec(context.Background(), createSQL); err != nil {
 			log.Fatalf("can't create table Url: %v\n", err)
-
 		}
 	}
 }

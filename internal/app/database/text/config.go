@@ -1,4 +1,4 @@
-package database
+package text
 
 import (
 	"time"
@@ -15,8 +15,8 @@ type TextStorageConfig struct {
 }
 
 // Конструктор конфига текстового хранилища на основе конфига сервера
-func GetTextStorageConfig(cfg config.ServerConfig) TextStorageConfig {
-	return TextStorageConfig{
+func GetTextStorageConfig(cfg *config.ServerConfig) *TextStorageConfig {
+	return &TextStorageConfig{
 		FileStoragePath: cfg.FileStoragePath,
 		ClearOnStart:    cfg.FileStorageClearOnStart,
 		TTLOnDisk:       cfg.FileStorageTTLOnDisk,
