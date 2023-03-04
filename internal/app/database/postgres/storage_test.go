@@ -14,7 +14,8 @@ func BenchmarkPostgresStorage(b *testing.B) {
 	}
 	s, err := NewPostgresStorage(cfg)
 	if err != nil {
-		panic(err)
+		log.Errorf("Can't run benchmarks for postgres: %v", err.Error())
+		return
 	}
 	ctx := context.Background()
 	log.SetLevel(log.WarnLevel)

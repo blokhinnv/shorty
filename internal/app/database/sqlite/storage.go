@@ -27,7 +27,10 @@ type SQLiteStorage struct {
 
 // Конструктор нового хранилища URL
 func NewSQLiteStorage(conf *SQLiteConfig) (*SQLiteStorage, error) {
-	InitDB(conf.DBPath, conf.ClearOnStart)
+	err := InitDB(conf.DBPath, conf.ClearOnStart)
+	if err != nil {
+		return nil, err
+	}
 	db, err := sql.Open("sqlite3", conf.DBPath)
 	if err != nil {
 		return nil, fmt.Errorf("can't access to DB %s: %v", conf.DBPath, err)

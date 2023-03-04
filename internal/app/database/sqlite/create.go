@@ -2,9 +2,8 @@ package sqlite
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
-
-	log "github.com/sirupsen/logrus"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -25,21 +24,22 @@ CREATE UNIQUE INDEX idx_url ON Url(url);
 `
 
 // При инициализации создадим БД, если ее не существует
-func InitDB(dbFile string, clearOnStart bool) {
+func InitDB(dbFile string, clearOnStart bool) error {
 	// Проверка существования БД
 	if _, err := os.Stat(dbFile); err == nil && clearOnStart {
 		err := os.Remove(dbFile)
 		if err != nil {
-			log.Fatalf("ClearOnStart error: %v", err)
+			return fmt.Errorf("clearOnStart error: %v", err)
 		}
 	}
 	// Создание таблицы в БД
 	db, err := sql.Open("sqlite3", dbFile)
 	if err != nil {
-		log.Fatalf("can't access to DB %s: %v\n", dbFile, err)
+		return fmt.Errorf("can't access to DB %s: %v", dbFile, err)
 	}
 	defer db.Close()
 	if _, err = db.Exec(createSQL); err != nil {
-		log.Fatalf("can't create table Url: %v\n", err)
+		return fmt.Errorf("can't create table Url: %v", err)
 	}
+	return nil
 }

@@ -14,7 +14,8 @@ func BenchmarkSQLiteStorage(b *testing.B) {
 	}
 	s, err := NewSQLiteStorage(cfg)
 	if err != nil {
-		panic(err)
+		log.Errorf("Can't run benchmarks for sqlite: %v", err.Error())
+		return
 	}
 	ctx := context.Background()
 	log.SetLevel(log.WarnLevel)

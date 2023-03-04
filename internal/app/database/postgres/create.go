@@ -2,8 +2,7 @@ package postgres
 
 import (
 	"context"
-
-	log "github.com/sirupsen/logrus"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -33,14 +32,15 @@ SELECT EXISTS (
 `
 
 // При инициализации создадим БД, если ее не существует
-func InitDB(conn *pgxpool.Pool, clearOnStart bool) {
+func InitDB(conn *pgxpool.Pool, clearOnStart bool) error {
 	var exists bool
 	if err := conn.QueryRow(context.Background(), existsSQL).Scan(&exists); err != nil {
-		log.Fatalf("can't create table Url: %v\n", err)
+		return fmt.Errorf("can't create table Url: %v", err)
 	}
 	if !exists || clearOnStart {
 		if _, err := conn.Exec(context.Background(), createSQL); err != nil {
-			log.Fatalf("can't create table Url: %v\n", err)
+			return fmt.Errorf("can't create table Url: %v", err)
 		}
 	}
+	return nil
 }
