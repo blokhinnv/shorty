@@ -5,8 +5,9 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 
 	s "github.com/blokhinnv/shorty/internal/app/server"
 	"github.com/blokhinnv/shorty/internal/app/server/config"

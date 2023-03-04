@@ -6,6 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+
+	defaultLog "log"
 
 	log "github.com/sirupsen/logrus"
 
@@ -29,11 +33,24 @@ func (f *LogFormatter) Format(entry *log.Entry) ([]byte, error) {
 
 func init() {
 	log.SetOutput(os.Stdout)
+	defaultLog.SetOutput(os.Stdout)
 	log.SetFormatter(new(LogFormatter))
+	log.SetLevel(log.DebugLevel)
 }
 
 // Создает хранилище и запускает сервер
 func RunServer(cfg *config.ServerConfig) {
+	shutdownCtx, _ := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGINT,
+		syscall.SIGKILL,
+	)
+	go func() {
+		<-shutdownCtx.Done()
+		log.Printf("Shutting down gracefully...")
+		os.Exit(0)
+	}()
+
 	s, err := database.NewDBStorage(cfg)
 	if err != nil {
 		log.Fatal(err.Error())

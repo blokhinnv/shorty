@@ -14,11 +14,11 @@ type ServerConfig struct {
 	BaseURL                 string        `env:"BASE_URL"                    envDefault:"http://localhost:8080" valid:"url"`
 	SecretKey               string        `env:"SECRET_KEY"` // не буду указывать дефолтное значение для безопасности
 	PostgresDatabaseDSN     string        `env:"DATABASE_DSN"`
-	PostgresClearOnStart    bool          `env:"PG_CLEAR_ON_START"           envDefault:"true"`
+	PostgresClearOnStart    bool          `env:"PG_CLEAR_ON_START"           envDefault:"false"`
 	SQLiteDBPath            string        `env:"SQLITE_DB_PATH"              envDefault:"db.sqlite3"`
-	SQLiteClearOnStart      bool          `env:"SQLITE_CLEAR_ON_START"       envDefault:"true"`
+	SQLiteClearOnStart      bool          `env:"SQLITE_CLEAR_ON_START"       envDefault:"false"`
 	FileStoragePath         string        `env:"FILE_STORAGE_PATH"`
-	FileStorageClearOnStart bool          `env:"FILE_STORAGE_CLEAR_ON_START" envDefault:"true"`
+	FileStorageClearOnStart bool          `env:"FILE_STORAGE_CLEAR_ON_START" envDefault:"false"`
 	FileStorageTTLOnDisk    time.Duration `env:"FILE_STORAGE_TTL_ON_DISK"    envDefault:"1h"`
 	FileStorageTTLInMemory  time.Duration `env:"FILE_STORAGE_TTL_IN_MEMORY"  envDefault:"15m"`
 }
