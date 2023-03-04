@@ -13,6 +13,8 @@ func NewRouter(storage storage.Storage, cfg *config.ServerConfig) chi.Router {
 	authentifier := m.NewAuth([]byte(cfg.SecretKey))
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+	r.Mount("/debug", middleware.Profiler())
+
 	r.Route("/", func(r chi.Router) {
 		r.Use(m.BaseURLCtx(cfg))
 		r.Use(authentifier.Handler)
