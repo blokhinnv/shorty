@@ -8,6 +8,7 @@ import (
 
 	"github.com/blokhinnv/shorty/internal/app/database"
 	"github.com/blokhinnv/shorty/internal/app/server/config"
+	log "github.com/sirupsen/logrus"
 )
 
 func BenchmarkToShortenBase(b *testing.B) {
@@ -27,7 +28,8 @@ func BenchmarkGetShortURL(b *testing.B) {
 		}
 		s, err := database.NewDBStorage(cfg)
 		if err != nil {
-			panic(err)
+			log.Errorf("Can't run benchmarks for SQLite: %v", err.Error())
+			return
 		}
 		b.ResetTimer()
 		for i := 0; i <= b.N; i++ {
@@ -47,7 +49,8 @@ func BenchmarkGetShortURL(b *testing.B) {
 		}
 		s, err := database.NewDBStorage(cfg)
 		if err != nil {
-			panic(err)
+			log.Errorf("Can't run benchmarks for Postgres: %v", err.Error())
+			return
 		}
 		b.ResetTimer()
 		for i := 0; i <= b.N; i++ {
@@ -66,7 +69,8 @@ func BenchmarkGetShortURL(b *testing.B) {
 		}
 		s, err := database.NewDBStorage(cfg)
 		if err != nil {
-			panic(err)
+			log.Errorf("Can't run benchmarks for TextStorage: %v", err.Error())
+			return
 		}
 		b.ResetTimer()
 		for i := 0; i <= b.N; i++ {
