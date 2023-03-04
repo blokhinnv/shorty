@@ -2,7 +2,8 @@ package database
 
 import (
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/blokhinnv/shorty/internal/app/database/postgres"
 	"github.com/blokhinnv/shorty/internal/app/database/sqlite"

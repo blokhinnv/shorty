@@ -2,12 +2,13 @@ package routes
 
 import (
 	"errors"
-	"log"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/blokhinnv/shorty/internal/app/server/config"
 	"github.com/go-chi/chi/v5"

@@ -8,8 +8,9 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
-	"log"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Auth struct {

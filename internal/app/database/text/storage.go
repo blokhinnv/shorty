@@ -7,18 +7,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/blokhinnv/shorty/internal/app/storage"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 )
-
-func init() {
-	log.SetOutput(os.Stdout)
-}
 
 type TextStorage struct {
 	filePath  string
@@ -77,7 +73,7 @@ func NewTextStorage(conf *TextStorageConfig) (*TextStorage, error) {
 func (s *TextStorage) UpdateStorage() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	log.Printf("Updating disk storage...\n")
+	log.Infof("Updating disk storage...\n")
 
 	file, err := os.OpenFile(s.filePath, os.O_RDONLY, 0777)
 	if err != nil {
@@ -96,12 +92,12 @@ func (s *TextStorage) UpdateStorage() {
 		if time.Since(r.Added) < s.ttlOnDisk {
 			if reqTime, ok := s.toUpdate[r.URL]; ok {
 				r.RequestedAt = reqTime
-				log.Printf("Updated last request time of %+v \n", r)
+				log.Infof("Updated last request time of %+v \n", r)
 				delete(s.toUpdate, r.URL)
 			}
 			newDB = append(newDB, r)
 		} else {
-			log.Printf("Removing %+v from disk \n", r)
+			log.Infof("Removing %+v from disk \n", r)
 		}
 	}
 	file.Close()
@@ -140,7 +136,7 @@ func (s *TextStorage) DeleteNotRequested() {
 		if time.Since(rec.RequestedAt) < s.ttlInMem {
 			filtered = append(filtered, rec)
 		} else {
-			log.Printf("Remove %+v from memory\n", rec)
+			log.Infof("Remove %+v from memory\n", rec)
 		}
 	}
 	s.db = filtered
@@ -309,7 +305,7 @@ func (s *TextStorage) AddURL(ctx context.Context, url, urlID string, userID uint
 	if err != nil {
 		return err
 	}
-	log.Printf("Added %v=>%v to buffer\n", url, urlID)
+	log.Infof("Added %v=>%v to buffer\n", url, urlID)
 	// добавим в память
 	s.db = append(s.db, r)
 	// добавим в файл
@@ -386,7 +382,7 @@ func (s *TextStorage) AddURLBatch(
 			if err != nil {
 				return err
 			}
-			log.Printf("Added %v=>%v to buffer\n", url, urlID)
+			log.Infof("Added %v=>%v to buffer\n", url, urlID)
 			continue
 		}
 		// нашли такой урл

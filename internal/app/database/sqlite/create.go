@@ -2,8 +2,9 @@ package sqlite
 
 import (
 	"database/sql"
-	"log"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 
 	_ "github.com/mattn/go-sqlite3"
 )

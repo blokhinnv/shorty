@@ -2,7 +2,8 @@ package postgres
 
 import (
 	"context"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )

@@ -6,10 +6,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/mattn/go-sqlite3"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -39,12 +39,12 @@ func NewSQLiteStorage(conf *SQLiteConfig) (*SQLiteStorage, error) {
 func (s *SQLiteStorage) AddURL(ctx context.Context, url, urlID string, userID uint32) error {
 	res, err := s.db.ExecContext(ctx, restoreSQL, userID, urlID)
 	if err != nil {
-		log.Printf("Error while updating URL: %v", err)
+		log.Infof("Error while updating URL: %v", err)
 		return err
 	}
 	n, err := res.RowsAffected()
 	if err != nil {
-		log.Printf("Error while updating URL: %v", err)
+		log.Infof("Error while updating URL: %v", err)
 		return err
 	}
 	// восстановили запись => добавлять не надо
@@ -54,7 +54,7 @@ func (s *SQLiteStorage) AddURL(ctx context.Context, url, urlID string, userID ui
 	// надо добавить
 	_, err = s.db.ExecContext(ctx, insertSQL, url, urlID, userID)
 	if err != nil {
-		log.Printf("Error while adding URL: %v", err)
+		log.Infof("Error while adding URL: %v", err)
 		if sqlerr, ok := err.(sqlite3.Error); ok {
 			if sqlerr.Code == sqlite3.ErrConstraint {
 				return fmt.Errorf(
@@ -68,7 +68,7 @@ func (s *SQLiteStorage) AddURL(ctx context.Context, url, urlID string, userID ui
 		}
 		return err
 	}
-	log.Printf("Added %v=>%v to storage\n", url, urlID)
+	log.Infof("Added %v=>%v to storage\n", url, urlID)
 	return nil
 }
 
@@ -224,7 +224,7 @@ func (s *SQLiteStorage) DeleteMany(ctx context.Context, userID uint32, urlIDs []
 	if err := tx.Commit(); err != nil {
 		log.Fatalf("update drivers: unable to commit: %v", err)
 	}
-	log.Printf("Set %v as deleted\n", updated)
+	log.Infof("Set %v as deleted\n", updated)
 	return nil
 }
 

@@ -2,8 +2,9 @@ package middleware
 
 import (
 	"compress/gzip"
-	"log"
 	"net/http"
+
+	log "github.com/sirupsen/logrus"
 )
 
 // Middleware для сжатия ответа

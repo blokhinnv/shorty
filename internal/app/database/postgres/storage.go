@@ -5,7 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/jackc/pgx/v5"
@@ -53,7 +54,7 @@ func NewPostgresStorage(conf *PostgresConfig) (*PostgresStorage, error) {
 func (s *PostgresStorage) AddURL(ctx context.Context, url, urlID string, userID uint32) error {
 	res, err := s.conn.Exec(ctx, restoreSQL, urlID, userID)
 	if err != nil {
-		log.Printf("Error while updating URL: %v", err)
+		log.Infof("Error while updating URL: %v", err)
 		return err
 	}
 	n := res.RowsAffected()
@@ -64,7 +65,7 @@ func (s *PostgresStorage) AddURL(ctx context.Context, url, urlID string, userID 
 	// нашли строку для восстановления => надо добавить
 	_, err = s.conn.Exec(ctx, insertSQL, url, urlID, userID)
 	if err != nil {
-		log.Printf("Error while adding URL: %v", err)
+		log.Infof("Error while adding URL: %v", err)
 		var pgerr *pgconn.PgError
 		if errors.As(err, &pgerr) {
 			if pgerr.Code == uniqueViolationCode {
@@ -79,7 +80,7 @@ func (s *PostgresStorage) AddURL(ctx context.Context, url, urlID string, userID 
 		}
 		return err
 	}
-	log.Printf("Added %v=>%v to storage\n", url, urlID)
+	log.Infof("Added %v=>%v to storage\n", url, urlID)
 	return nil
 }
 
@@ -176,7 +177,7 @@ func (s *PostgresStorage) AddURLBatch(
 func (s *PostgresStorage) DeleteMany(ctx context.Context, userID uint32, urlIDs []string) error {
 	rows, err := s.conn.Query(ctx, deleteBatchByURLIDSQL, urlIDs, userID)
 	if err != nil {
-		log.Printf("Error while deleting URL: %v", err)
+		log.Infof("Error while deleting URL: %v", err)
 		return err
 	}
 	// не забудем закрыть объект!
@@ -197,7 +198,7 @@ func (s *PostgresStorage) DeleteMany(ctx context.Context, userID uint32, urlIDs 
 	if err := rows.Err(); err != nil {
 		return err
 	}
-	log.Printf("Set %v as deleted\n", updated)
+	log.Infof("Set %v as deleted\n", updated)
 	return nil
 
 }
