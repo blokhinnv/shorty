@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 
 	defaultLog "log"
 
@@ -40,16 +38,16 @@ func init() {
 
 // Создает хранилище и запускает сервер
 func RunServer(cfg *config.ServerConfig) {
-	shutdownCtx, _ := signal.NotifyContext(
-		context.Background(),
-		syscall.SIGINT,
-		syscall.SIGKILL,
-	)
-	go func() {
-		<-shutdownCtx.Done()
-		log.Printf("Shutting down gracefully...")
-		os.Exit(0)
-	}()
+	// shutdownCtx, _ := signal.NotifyContext(
+	// 	context.Background(),
+	// 	syscall.SIGINT,
+	// 	syscall.SIGKILL,
+	// )
+	// go func() {
+	// 	<-shutdownCtx.Done()
+	// 	log.Printf("Shutting down gracefully...")
+	// 	os.Exit(0)
+	// }()
 
 	s, err := database.NewDBStorage(cfg)
 	if err != nil {
