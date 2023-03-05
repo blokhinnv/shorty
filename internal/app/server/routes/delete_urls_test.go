@@ -191,8 +191,9 @@ func ExampleDeleteURLsHandler_Handler() {
 
 	// Run
 	handler.Handler(rr, req.WithContext(ctx))
-	fmt.Println(rr.Result().StatusCode)
-
+	res := rr.Result()
+	defer res.Body.Close()
+	fmt.Println(res.StatusCode)
 	// Output:
 	// 202
 }
