@@ -8,6 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// BenchmarkTextStorage - бенчмарки для основных методов хранилища.
 func BenchmarkTextStorage(b *testing.B) {
 	cfg := &TextStorageConfig{
 		FileStoragePath: "db_test.jsonl",

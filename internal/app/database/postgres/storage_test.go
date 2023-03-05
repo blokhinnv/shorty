@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// BenchmarkPostgresStorage - бенчмарки для основных методов хранилища.
 func BenchmarkPostgresStorage(b *testing.B) {
 	cfg := &PostgresConfig{
 		DatabaseDSN:  "postgres://root:pwd@localhost:5432/root",

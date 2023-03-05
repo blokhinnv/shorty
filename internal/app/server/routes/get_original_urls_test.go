@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Функция для заполнения хранилища примерами
+// addRecords - функция для заполнения хранилища примерами.
 func addRecords(
 	t *testing.T,
 	s storage.Storage,
@@ -34,7 +34,7 @@ func addRecords(
 	return answer
 }
 
-// Тесты для GET-запроса
+// ListOfURLsTestLogic - логика тестов для GET-запроса.
 func ListOfURLsTestLogic(t *testing.T, testCfg TestConfig) {
 	s, err := db.NewDBStorage(testCfg.serverCfg)
 	if err != nil {
@@ -108,14 +108,17 @@ func ListOfURLsTestLogic(t *testing.T, testCfg TestConfig) {
 	})
 }
 
+// Test_ListOfURLs_SQLite - запуск тестов для SQLite.
 func Test_ListOfURLs_SQLite(t *testing.T) {
 	ListOfURLsTestLogic(t, NewTestConfig("test_sqlite.env"))
 }
 
+// Test_ListOfURLs_Text - запуск тестов для текстового хранилища.
 func Test_ListOfURLs_Text(t *testing.T) {
 	ListOfURLsTestLogic(t, NewTestConfig("test_text.env"))
 }
 
+// Test_ListOfURLs_Postgres - запуск тестов для Postgres.
 // func Test_ListOfURLs_Postgres(t *testing.T) {
 // 	ListOfURLsTestLogic(t, NewTestConfig("test_postgres.env"))
 // }

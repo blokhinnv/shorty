@@ -1,3 +1,4 @@
+// Пакет routes содержит все обработчики для работы сервера
 package routes
 
 import (
@@ -11,6 +12,8 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
+// shortenURLLogic - общая логика для сокращения URL. Используется в нескольких
+// хендлерах.
 func shortenURLLogic(
 	ctx context.Context,
 	w http.ResponseWriter,

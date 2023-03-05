@@ -12,7 +12,8 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
-// Эндпоинт POST / принимает в теле запроса строку URL
+// GetShortURLHandlerFunc - реализация эндпоинта POST /.
+// Принимает в теле запроса строку URL
 // для сокращения и возвращает ответ с кодом 201 и
 // сокращённым URL в виде текстовой строки в теле.
 func GetShortURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {

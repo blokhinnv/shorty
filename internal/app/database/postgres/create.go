@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// SQL-запрос для создания таблицы для Url
+// SQL-запрос для создания таблицы для Url.
 const createSQL = `
 DROP TABLE IF EXISTS Url;
 CREATE TABLE Url(
@@ -21,6 +21,8 @@ CREATE TABLE Url(
 );
 CREATE UNIQUE INDEX idx_url ON Url(url);
 `
+
+// SQL-запрос для проверки наличия таблицы для Url.
 const existsSQL = `
 SELECT EXISTS (
     SELECT FROM
@@ -31,9 +33,10 @@ SELECT EXISTS (
 );
 `
 
-// При инициализации создадим БД, если ее не существует
+// InitDB инициализирует структуру БД для дальнейшей работы
 func InitDB(conn *pgxpool.Pool, clearOnStart bool) error {
 	var exists bool
+	// при инициализации создадим БД, если ее не существует
 	if err := conn.QueryRow(context.Background(), existsSQL).Scan(&exists); err != nil {
 		return fmt.Errorf("can't create table Url: %v", err)
 	}

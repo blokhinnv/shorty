@@ -12,6 +12,7 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
+// Структуры для тела запроса и ответа.
 type (
 	ShortJSONRequest struct {
 		URL string `json:"url" valid:"url,required"`
@@ -21,8 +22,8 @@ type (
 	}
 )
 
-// Новый эндпоинт POST /api/shorten, принимающий в теле
-// запроса JSON-объект {"url":"<some_url>"} и возвращающий
+// GetShortURLAPIHandlerFunc - овый эндпоинт POST /api/shorten.
+// Он принимает в теле запроса JSON-объект {"url":"<some_url>"} и возвращает
 // в ответ объект {"result":"<shorten_url>"}.
 func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {

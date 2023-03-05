@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Тесты для POST-запроса
+// DeleteTestLogic - логика тестов для хендлера с удалением URL.
 func DeleteTestLogic(t *testing.T, testCfg TestConfig) {
 	// Если стартануть сервер cmd/shortener/main,
 	// то будет использоваться его роутинг даже в тестах :о
@@ -150,14 +150,17 @@ func DeleteTestLogic(t *testing.T, testCfg TestConfig) {
 	}
 }
 
+// Test_Delete_SQLite - запуск тестов для SQLite.
 func Test_Delete_SQLite(t *testing.T) {
 	DeleteTestLogic(t, NewTestConfig("test_sqlite.env"))
 }
 
+// Test_Delete_SQLite - запуск тестов для текстового хранилища.
 func Test_Delete_Text(t *testing.T) {
 	DeleteTestLogic(t, NewTestConfig("test_text.env"))
 }
 
+// Test_Delete_Postgres - запуск тестов для Postgres.
 // func Test_Delete_Postgres(t *testing.T) {
 // 	DeleteTestLogic(t, NewTestConfig("test_postgres.env"))
 // }

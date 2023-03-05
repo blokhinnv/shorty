@@ -11,12 +11,14 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// BenchmarkToShortenBase - бенчмарк для toShortenBase.
 func BenchmarkToShortenBase(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		toShortenBase(rand.Uint64())
 	}
 }
 
+// BenchmarkGetShortURL - бенчмарк для GetShortURL.
 func BenchmarkGetShortURL(b *testing.B) {
 	b.Run("SQLite", func(b *testing.B) {
 		cfg := &config.ServerConfig{

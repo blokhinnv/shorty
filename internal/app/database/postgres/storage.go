@@ -1,4 +1,3 @@
-// Пакет для создания БД - хранилища URL
 package postgres
 
 import (
@@ -14,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// SQL-запросы для реализации необходимой логики.
 const (
 	selectByURLIDSQL      = "SELECT url, user_id, is_deleted FROM Url WHERE url_id = $1;"
 	selectByUserIDSQL     = "SELECT url, url_id, is_deleted FROM Url WHERE user_id = $1;"
@@ -24,11 +24,12 @@ const (
 	clearSQL              = "DELETE FROM Url;"
 )
 
+// PostgresStorage реализует интерфейс Storage на основе Postgres.
 type PostgresStorage struct {
 	conn *pgxpool.Pool
 }
 
-// Конструктор нового хранилища URL
+// NewPostgresStorage - Конструктор нового хранилища URL.
 func NewPostgresStorage(conf *PostgresConfig) (*PostgresStorage, error) {
 	// до реализации удаления работало так:
 	// conn, err := pgx.Connect(context.Background(), conf.DatabaseDSN)
@@ -52,7 +53,7 @@ func NewPostgresStorage(conf *PostgresConfig) (*PostgresStorage, error) {
 	return &PostgresStorage{conn}, nil
 }
 
-// Метод для добавления нового URL в БД
+// AddURL - Метод для добавления нового URL в БД.
 func (s *PostgresStorage) AddURL(ctx context.Context, url, urlID string, userID uint32) error {
 	res, err := s.conn.Exec(ctx, restoreSQL, urlID, userID)
 	if err != nil {
@@ -86,7 +87,7 @@ func (s *PostgresStorage) AddURL(ctx context.Context, url, urlID string, userID 
 	return nil
 }
 
-// Возвращает URL по его ID в БД
+// GetURLByID возвращает URL по его ID в БД.
 func (s *PostgresStorage) GetURLByID(ctx context.Context, urlID string) (storage.Record, error) {
 	rec := storage.Record{URLID: urlID}
 	// Получаем строки
@@ -104,7 +105,7 @@ func (s *PostgresStorage) GetURLByID(ctx context.Context, urlID string) (storage
 	return rec, nil
 }
 
-// Получает URLs по ID пользователя
+// GetURLsByUser получает URLs по ID пользователя.
 func (s *PostgresStorage) GetURLsByUser(
 	ctx context.Context,
 	userID uint32,
@@ -141,7 +142,7 @@ func (s *PostgresStorage) GetURLsByUser(
 	return results, nil
 }
 
-// Добавляет пакет URLов в хранилище
+// AddURLBatch добавляет пакет URLов в хранилище.
 func (s *PostgresStorage) AddURLBatch(
 	ctx context.Context,
 	urlIDs map[string]string,
@@ -175,7 +176,7 @@ func (s *PostgresStorage) AddURLBatch(
 	return nil
 }
 
-// Устанавливает отметку об удалении URL
+// DeleteMany устанавливает отметку об удалении URL.
 func (s *PostgresStorage) DeleteMany(ctx context.Context, userID uint32, urlIDs []string) error {
 	rows, err := s.conn.Query(ctx, deleteBatchByURLIDSQL, urlIDs, userID)
 	if err != nil {
@@ -205,17 +206,17 @@ func (s *PostgresStorage) DeleteMany(ctx context.Context, userID uint32, urlIDs 
 
 }
 
-// Закрывает соединение с Postgres
+// Close закрывает соединение с Postgres.
 func (s *PostgresStorage) Close(ctx context.Context) {
 	s.conn.Close()
 }
 
-// Проверяет соединение с хранилищем
+// Ping проверяет соединение с хранилищем.
 func (s *PostgresStorage) Ping(ctx context.Context) bool {
 	return s.conn.Ping(ctx) == nil
 }
 
-// Очищает хранилище
+// Clear очищает хранилище.
 func (s *PostgresStorage) Clear(ctx context.Context) error {
 	_, err := s.conn.Exec(ctx, clearSQL)
 	return err

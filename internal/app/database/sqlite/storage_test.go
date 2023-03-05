@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// BenchmarkSQLiteStorage - бенчмарки для основных методов хранилища.
 func BenchmarkSQLiteStorage(b *testing.B) {
 	cfg := &SQLiteConfig{
 		DBPath:       "db_test.sqlite3",

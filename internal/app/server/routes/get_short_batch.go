@@ -15,6 +15,7 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
+// Структуры для тела запроса и ответа.
 type (
 	ShortBatchRequestJSONItem struct {
 		CorrelationID string `json:"correlation_id"`
@@ -26,15 +27,17 @@ type (
 	}
 )
 
+// Структура для реализации хэндлера.
 type GetShortURLsBatchHandler struct {
 	s storage.Storage
 }
 
+// NewGetShortURLsBatchHandler - конструктор GetShortURLsBatchHandler.
 func NewGetShortURLsBatchHandler(s storage.Storage) *GetShortURLsBatchHandler {
 	return &GetShortURLsBatchHandler{s}
 }
 
-// Подготавливает данные и вызывает добавление пакета
+// addURLs подготавливает данные и вызывает добавление пакета.
 func (h *GetShortURLsBatchHandler) addURLs(
 	ctx context.Context,
 	data []ShortBatchRequestJSONItem,
@@ -71,6 +74,7 @@ func (h *GetShortURLsBatchHandler) addURLs(
 	return result, status, nil
 }
 
+// Handler - реализация хэндлера.
 func (h *GetShortURLsBatchHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()

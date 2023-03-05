@@ -1,4 +1,4 @@
-// Пакет для создания и настройки сервера
+// Пакет server содержит логику создания, настройки и запуска сервера.
 package server
 
 import (
@@ -16,10 +16,12 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/server/routes"
 )
 
-type LogFormatter struct {
+// logFormatter - кастомный формат для логгера logrus.
+type logFormatter struct {
 }
 
-func (f *LogFormatter) Format(entry *log.Entry) ([]byte, error) {
+// Format реализует кастомный вывод сообщения.
+func (f *logFormatter) Format(entry *log.Entry) ([]byte, error) {
 	return []byte(
 		fmt.Sprintf(
 			"%v [%v] %v\n",
@@ -29,14 +31,15 @@ func (f *LogFormatter) Format(entry *log.Entry) ([]byte, error) {
 	), nil
 }
 
+// init настраивает поток и формат вывода для логгера.
 func init() {
 	log.SetOutput(os.Stdout)
 	defaultLog.SetOutput(os.Stdout)
-	log.SetFormatter(new(LogFormatter))
+	log.SetFormatter(new(logFormatter))
 	log.SetLevel(log.DebugLevel)
 }
 
-// Создает хранилище и запускает сервер
+// RunServer создает хранилище и запускает сервер.
 func RunServer(cfg *config.ServerConfig) {
 	// shutdownCtx, _ := signal.NotifyContext(
 	// 	context.Background(),

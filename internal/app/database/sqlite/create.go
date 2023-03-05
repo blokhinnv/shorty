@@ -8,7 +8,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// SQL-запрос для создания таблицы для Url
+// createSQL - SQL-запрос для создания таблицы для URL.
 const createSQL = `
 DROP TABLE IF EXISTS Url;
 CREATE TABLE Url(
@@ -23,7 +23,7 @@ CREATE TABLE Url(
 CREATE UNIQUE INDEX idx_url ON Url(url);
 `
 
-// При инициализации создадим БД, если ее не существует
+// InitDB инициализирует структуру БД для дальнейшей работы
 func InitDB(dbFile string, clearOnStart bool) error {
 	// Проверка существования БД
 	if _, err := os.Stat(dbFile); err == nil && clearOnStart {

@@ -7,11 +7,13 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/server/config"
 )
 
+// ContextStringKey - тип ключа для контекста.
 type ContextStringKey string
 
+// BaseURLCtxKey  - ключ для контекста.
 const BaseURLCtxKey = ContextStringKey("baseURL")
 
-// Добавляет в контекст базовый URL
+// BaseURLCtx добавляет в контекст базовый URL.
 func BaseURLCtx(cfg *config.ServerConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

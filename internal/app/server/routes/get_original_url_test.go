@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Тесты для GET-запроса
+// LengthenTestLogic - логика тестов для для получения оригинального URL.
 func LengthenTestLogic(t *testing.T, testCfg TestConfig) {
 	s, err := db.NewDBStorage(testCfg.serverCfg)
 	if err != nil {
@@ -91,14 +91,17 @@ func LengthenTestLogic(t *testing.T, testCfg TestConfig) {
 	}
 }
 
+// Test_Lengthen_SQLite - запуск тестов для SQLite.
 func Test_Lengthen_SQLite(t *testing.T) {
 	LengthenTestLogic(t, NewTestConfig("test_sqlite.env"))
 }
 
+// Test_Lengthen_Text - запуск тестов для текстового хранилища.
 func Test_Lengthen_Text(t *testing.T) {
 	LengthenTestLogic(t, NewTestConfig("test_text.env"))
 }
 
+// Test_Lengthen_Postgres - запуск тестов для Postgres.
 // func Test_Lengthen_Postgres(t *testing.T) {
 // 	LengthenTestLogic(t, NewTestConfig("test_postgres.env"))
 // }

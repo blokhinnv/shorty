@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// ListOfURLsTestLogic - логика тестов для сокращения батчами.
 func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
 	// Если стартануть сервер cmd/shortener/main,
 	// то будет использоваться его роутинг даже в тестах :о
@@ -119,14 +120,17 @@ func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
 	}
 }
 
+// Test_ShortenBatch_SQLite - запуск тестов для SQLite.
 func Test_ShortenBatch_SQLite(t *testing.T) {
 	ShortenBatchTestLogic(t, NewTestConfig("test_sqlite.env"))
 }
 
+// Test_ShortenBatch_Text - запуск тестов для текстового хранилища.
 func Test_ShortenBatch_Text(t *testing.T) {
 	ShortenBatchTestLogic(t, NewTestConfig("test_text.env"))
 }
 
+// Test_ShortenBatch_Postgres - запуск тестов для Postgres.
 // func Test_ShortenBatch_Postgres(t *testing.T) {
 // 	ShortenBatchTestLogic(t, NewTestConfig("test_postgres.env"))
 // }

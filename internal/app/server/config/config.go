@@ -1,3 +1,4 @@
+// Пакет config содержит описание конфига сервера.
 package config
 
 import (
@@ -8,7 +9,7 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
-// Конфиг сервера
+// ServerConfig - структура для хранения конфига сервера.
 type ServerConfig struct {
 	ServerAddress           string        `env:"SERVER_ADDRESS"              envDefault:"http://localhost:8080" valid:"url"`
 	BaseURL                 string        `env:"BASE_URL"                    envDefault:"http://localhost:8080" valid:"url"`
@@ -23,7 +24,7 @@ type ServerConfig struct {
 	FileStorageTTLInMemory  time.Duration `env:"FILE_STORAGE_TTL_IN_MEMORY"  envDefault:"15m"`
 }
 
-// Обновляет конфиг сервера на основе флагов
+// UpdateFromFlags обновляет конфиг сервера на основе флагов.
 func (cfg *ServerConfig) UpdateFromFlags(flagCfg *FlagConfig) {
 	// вроде как приоритет должен быть у env,
 	// но тогда не пройду 7 тест...
@@ -44,7 +45,7 @@ func (cfg *ServerConfig) UpdateFromFlags(flagCfg *FlagConfig) {
 	}
 }
 
-// Возвращает конфиг для сервера
+// NewServerConfig - конструктор конфига для сервера.
 func NewServerConfig(flagCfg *FlagConfig) (*ServerConfig, error) {
 	cfg := ServerConfig{}
 	if err := env.Parse(&cfg); err != nil {

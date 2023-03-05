@@ -16,18 +16,23 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// Данные пользователя для тестирования.
 const (
 	userID    uint32 = 2781908098
 	userToken string = "a5d08c82f3815eefe7f496d9652d8a041031e6a7f89d6bb2c90e1dfc335826e5a22255c8"
 )
 
-// Настройки для блокирования перенаправления
-var errRedirectBlocked = errors.New("HTTP redirect blocked")
-var NoRedirectPolicy = resty.RedirectPolicyFunc(func(req *http.Request, via []*http.Request) error {
-	return errRedirectBlocked
-})
+// Настройки для блокирования перенаправления.
+var (
+	errRedirectBlocked = errors.New("HTTP redirect blocked")
+	NoRedirectPolicy   = resty.RedirectPolicyFunc(
+		func(req *http.Request, via []*http.Request) error {
+			return errRedirectBlocked
+		},
+	)
+)
 
-// Конфиг для запуска тестов
+// Конфиг для запуска тестов.
 type TestConfig struct {
 	serverCfg *config.ServerConfig
 	host      string
@@ -35,6 +40,7 @@ type TestConfig struct {
 	baseURL   string
 }
 
+// unsetTestEnv сбрасывает все переменные окружения.
 func unsetTestEnv() {
 	for _, envName := range []string{
 		"SQLITE_DB_PATH",
@@ -54,7 +60,7 @@ func unsetTestEnv() {
 
 }
 
-// Конструктор конфига для запуска тестов
+// NewTestConfig - конструктор конфига для запуска тестов.
 func NewTestConfig(envPath string) TestConfig {
 	unsetTestEnv()
 	godotenv.Load(envPath)
@@ -72,7 +78,7 @@ func NewTestConfig(envPath string) TestConfig {
 
 }
 
-// Конструктор нового сервера
+// NewServerWithPort - конструктор нового сервера.
 // Нужен, чтобы убедиться, что сервер запустится на нужном нам порте
 func NewServerWithPort(r chi.Router, host, port string) *httptest.Server {
 	l, err := net.Listen("tcp", host)
@@ -86,7 +92,7 @@ func NewServerWithPort(r chi.Router, host, port string) *httptest.Server {
 	return ts
 }
 
-// Вспомогательная функция, которая заменяет 127.0.0.1 на localhost
+// IPToLocalhost - вспомогательная функция, которая заменяет 127.0.0.1 на localhost.
 func IPToLocalhost(addr string) string {
 	return strings.Replace(addr, "127.0.0.1", "localhost", -1)
 }

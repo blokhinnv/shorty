@@ -1,3 +1,4 @@
+// Пакет middleware содержит реализации middleware для работы сервера
 package middleware
 
 import (
@@ -13,15 +14,24 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// Константы для работы middleware
+const (
+	UserTokenCookieName = "UserToken"
+	UserIDCtxKey        = ContextStringKey("UserID")
+	nBytesForID         = 4
+)
+
+// Auth - структура для middleware авторизации.
 type Auth struct {
 	secretKey []byte
 }
 
-const UserTokenCookieName = "UserToken"
-const UserIDCtxKey = ContextStringKey("UserID")
-const nBytesForID = 4
+// NewAuth - конструктор Auth middleware.
+func NewAuth(key []byte) *Auth {
+	return &Auth{secretKey: key}
+}
 
-// генерирует случайный ID пользователя
+// generateUserID генерирует случайный ID пользователя.
 func (m *Auth) generateUserID(size int) ([]byte, error) {
 	b := make([]byte, size)
 	_, err := rand.Read(b)
@@ -31,7 +41,7 @@ func (m *Auth) generateUserID(size int) ([]byte, error) {
 	return b, nil
 }
 
-// Устанавливает cookie на основе подписи
+// setCookie устанавливает cookie на основе подписи.
 func (m *Auth) setCookie(w http.ResponseWriter, r *http.Request) *http.Cookie {
 	userToken, err := m.generateToken()
 	if err != nil {
@@ -47,14 +57,14 @@ func (m *Auth) setCookie(w http.ResponseWriter, r *http.Request) *http.Cookie {
 	return &cookie
 }
 
-// Генерирует подпись для данных
+// generateHMAC генерирует подпись для данных.
 func (m *Auth) generateHMAC(data []byte) []byte {
 	h := hmac.New(sha256.New, m.secretKey)
 	h.Write(data)
 	return h.Sum(nil)
 }
 
-// Генерирует подпись
+// generateToken генерирует токен.
 func (m *Auth) generateToken() (string, error) {
 	// 4 байта - ID пользователя (данные)
 	id, err := m.generateUserID(nBytesForID)
@@ -68,7 +78,7 @@ func (m *Auth) generateToken() (string, error) {
 	return hex.EncodeToString(token), nil
 }
 
-// Проверяет куки (токен)
+// verifyCookie проверяет куки (токен).
 func (m *Auth) verifyCookie(w http.ResponseWriter, cookie *http.Cookie) bool {
 	data, err := hex.DecodeString(cookie.Value)
 	if err != nil {
@@ -82,7 +92,7 @@ func (m *Auth) verifyCookie(w http.ResponseWriter, cookie *http.Cookie) bool {
 	return hmac.Equal(sign, data[nBytesForID:])
 }
 
-// извлекает ID из Cookie
+// extractID извлекает ID из куки.
 func (m *Auth) extractID(w http.ResponseWriter, cookie *http.Cookie) uint32 {
 	data, err := hex.DecodeString(cookie.Value)
 	if err != nil {
@@ -93,7 +103,7 @@ func (m *Auth) extractID(w http.ResponseWriter, cookie *http.Cookie) uint32 {
 	return id
 }
 
-// Обработчик middleware
+// Handler возвращает обработчик middleware.
 func (m *Auth) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(UserTokenCookieName)
@@ -118,9 +128,4 @@ func (m *Auth) Handler(next http.Handler) http.Handler {
 		)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-// Конструктор middleware
-func NewAuth(key []byte) *Auth {
-	return &Auth{secretKey: key}
 }
