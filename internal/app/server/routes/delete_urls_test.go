@@ -1,17 +1,22 @@
 package routes
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
+	database "github.com/blokhinnv/shorty/internal/app/database/mock"
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/shorten"
+	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/go-resty/resty/v2"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -164,3 +169,30 @@ func Test_Delete_Text(t *testing.T) {
 // func Test_Delete_Postgres(t *testing.T) {
 // 	DeleteTestLogic(t, NewTestConfig("test_postgres.env"))
 // }
+
+func ExampleDeleteURLsHandler_Handler() {
+	// Setup storage ...
+	t := new(testing.T)
+	ctrl := gomock.NewController(t)
+	s := database.NewMockStorage(ctrl)
+	s.EXPECT().
+		GetURLByID(gomock.Any(), "rb1t0eupmn2_").
+		Times(1).
+		Return(storage.Record{URL: "https://practicum.yandex.ru/learn/"}, nil)
+	// Setup request ...
+	handler := NewDeleteURLsHandler(s, 10)
+	rr := httptest.NewRecorder()
+	body := bytes.NewBuffer([]byte(`["rb1t0eupmn2_"]`))
+	req, _ := http.NewRequest(http.MethodDelete, "/user/urls", body)
+	// Setup context ...
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, middleware.BaseURLCtxKey, "http://localhost:8080")
+	ctx = context.WithValue(ctx, middleware.UserIDCtxKey, uint32(1))
+
+	// Run
+	handler.Handler(rr, req.WithContext(ctx))
+	fmt.Println(rr.Result().StatusCode)
+
+	// Output:
+	// 202
+}
