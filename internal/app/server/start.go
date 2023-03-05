@@ -41,17 +41,6 @@ func init() {
 
 // RunServer создает хранилище и запускает сервер.
 func RunServer(cfg *config.ServerConfig) {
-	// shutdownCtx, _ := signal.NotifyContext(
-	// 	context.Background(),
-	// 	syscall.SIGINT,
-	// 	syscall.SIGKILL,
-	// )
-	// go func() {
-	// 	<-shutdownCtx.Done()
-	// 	log.Printf("Shutting down gracefully...")
-	// 	os.Exit(0)
-	// }()
-
 	s, err := database.NewDBStorage(cfg)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -59,5 +48,5 @@ func RunServer(cfg *config.ServerConfig) {
 	defer s.Close(context.Background())
 	r := routes.NewRouter(s, cfg)
 	log.Printf("Starting server with config %+v\n", cfg)
-	log.Fatal(http.ListenAndServe(cfg.ServerAddress, r))
+	http.ListenAndServe(cfg.ServerAddress, r)
 }
