@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	log "github.com/sirupsen/logrus"
 )
 
 // SQL-запрос для создания таблицы для Url.
@@ -33,7 +34,7 @@ SELECT EXISTS (
 );
 `
 
-// InitDB инициализирует структуру БД для дальнейшей работы
+// InitDB инициализирует структуру БД для дальнейшей работы.
 func InitDB(conn *pgxpool.Pool, clearOnStart bool) error {
 	var exists bool
 	// при инициализации создадим БД, если ее не существует
@@ -41,6 +42,7 @@ func InitDB(conn *pgxpool.Pool, clearOnStart bool) error {
 		return fmt.Errorf("can't create table Url: %v", err)
 	}
 	if !exists || clearOnStart {
+		log.Infoln("INIT DB", exists, clearOnStart)
 		if _, err := conn.Exec(context.Background(), createSQL); err != nil {
 			return fmt.Errorf("can't create table Url: %v", err)
 		}
