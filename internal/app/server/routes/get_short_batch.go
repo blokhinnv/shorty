@@ -27,7 +27,7 @@ type (
 	}
 )
 
-// Структура для реализации хэндлера.
+// GetShortURLsBatchHandler - Структура для реализации хэндлера.
 type GetShortURLsBatchHandler struct {
 	s storage.Storage
 }

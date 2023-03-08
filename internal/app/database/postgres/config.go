@@ -13,7 +13,7 @@ type PostgresConfig struct {
 	ClearOnStart bool
 }
 
-// Конструктор конфига Postgres на основе конфига сервера
+// GetPostgresConfig - Конструктор конфига Postgres на основе конфига сервера
 func GetPostgresConfig(cfg *config.ServerConfig) *PostgresConfig {
 	return &PostgresConfig{
 		DatabaseDSN:  cfg.PostgresDatabaseDSN,

@@ -13,7 +13,7 @@ var (
 	ErrURLWasDeleted   = errors.New("requested url was deleted")
 )
 
-// Интерфейс для хранилища.
+// Storage - интерфейс для хранилища.
 type Storage interface {
 	// AddURL добавляет URL в хранилище.
 	AddURL(ctx context.Context, url, urlID string, userID uint32) error

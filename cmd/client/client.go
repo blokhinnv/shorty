@@ -1,5 +1,7 @@
 package main
 
+//lint:file-ignore U1000 игнорируем неиспользуемый код
+
 import (
 	"bufio"
 	"bytes"
