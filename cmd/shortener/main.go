@@ -1,3 +1,6 @@
+// Пакет main - точка входа для сервера
+//
+// Пример запуска под windows: FOR /F %i IN ('git rev-parse HEAD') DO SET BUILD_COMMIT=%i && SET BUILD_DATE=%DATE% %TIME% && go run -ldflags "-X main.buildVersion=v0.0.1 -X 'main.buildDate=%BUILD_DATE%' -X 'main.buildCommit=%BUILD_COMMIT%'" .
 package main
 
 // не забыть стартанут сервер redis
@@ -5,6 +8,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -14,6 +18,14 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/server/config"
 )
 
+// Глобальные переменные сборки
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+)
+
+// parseConfig - парсит флаги в структуру config.FlagConfig
 func parseConfig(cfg *config.FlagConfig) {
 	flag.StringVar(&cfg.ServerAddress, "a", "", "server address")
 	flag.StringVar(&cfg.BaseURL, "b", "", "base url")
@@ -28,7 +40,27 @@ func parseConfig(cfg *config.FlagConfig) {
 	flag.Parse()
 }
 
+// printBuildInfo - выводит сообщение о версии, дате и коммите билда при старте.
+func printBuildInfo() {
+	coalesce := func(args ...string) string {
+		for _, a := range args {
+			if a != "" {
+				return a
+			}
+		}
+		return ""
+	}
+	buildVersion = coalesce(buildVersion, "N/A")
+	fmt.Printf(
+		"Build version: %s\nBuild date: %s\nBuild commit: %s\n",
+		coalesce(buildVersion, "N/A"),
+		coalesce(buildDate, "N/A"),
+		coalesce(buildCommit, "N/A"),
+	)
+}
+
 func main() {
+	printBuildInfo()
 	// для разработки использую air, его приходится запускать их корня
 	// проекта, т.к. мне нужно мониторить изменения всех файлов проекта
 	// настроил air так, что собранный сервер запускается с аргументом dev,

@@ -40,6 +40,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.1
+	gobn.github.io/coalesce v1.0.2
 	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/tools v0.7.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
