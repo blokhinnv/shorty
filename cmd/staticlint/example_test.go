@@ -1,0 +1,35 @@
+package main
+
+import (
+	"io"
+	"os"
+
+	"github.com/blokhinnv/shorty/pkg/shortycheck"
+	"github.com/pelletier/go-toml/v2"
+	log "github.com/sirupsen/logrus"
+)
+
+func Example() {
+	// запуск из кода
+
+	// читаем конфиг
+	cfgFile, err := os.Open("staticcheck.conf")
+	if err != nil {
+		// если конфиг не найден, запускаем без анализаторов staticcheck
+		log.Infoln("unable to open config file")
+		shortycheck.RunMultichecker([]string{})
+	} else {
+		// получаем анализаторы staticcheck
+		cfgBytes, err := io.ReadAll(cfgFile)
+		if err != nil {
+			log.Fatal("unable to read config file")
+		}
+		var cfg stchkConfig
+		err = toml.Unmarshal(cfgBytes, &cfg)
+		if err != nil {
+			log.Fatal("unable to unmarshal config file")
+		}
+		// запускаем с доп. анализаторами
+		shortycheck.RunMultichecker(cfg.Checks)
+	}
+}

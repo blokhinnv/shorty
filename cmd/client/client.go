@@ -143,8 +143,7 @@ func main() {
 	// читаем строку из консоли
 	long, err := reader.ReadString('\n')
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 	long = strings.TrimSpace(long)
 	// sendHTTPRequest(endpoint, long)
