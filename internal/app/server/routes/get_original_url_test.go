@@ -4,16 +4,20 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
+	database "github.com/blokhinnv/shorty/internal/app/database/mock"
 	"github.com/blokhinnv/shorty/internal/app/shorten"
+	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/go-resty/resty/v2"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// Тесты для GET-запроса
+// LengthenTestLogic - логика тестов для для получения оригинального URL.
 func LengthenTestLogic(t *testing.T, testCfg TestConfig) {
 	s, err := db.NewDBStorage(testCfg.serverCfg)
 	if err != nil {
@@ -91,14 +95,38 @@ func LengthenTestLogic(t *testing.T, testCfg TestConfig) {
 	}
 }
 
+// Test_Lengthen_SQLite - запуск тестов для SQLite.
 func Test_Lengthen_SQLite(t *testing.T) {
 	LengthenTestLogic(t, NewTestConfig("test_sqlite.env"))
 }
 
+// Test_Lengthen_Text - запуск тестов для текстового хранилища.
 func Test_Lengthen_Text(t *testing.T) {
 	LengthenTestLogic(t, NewTestConfig("test_text.env"))
 }
 
+// Test_Lengthen_Postgres - запуск тестов для Postgres.
 // func Test_Lengthen_Postgres(t *testing.T) {
 // 	LengthenTestLogic(t, NewTestConfig("test_postgres.env"))
 // }
+
+func ExampleGetOriginalURLHandlerFunc() {
+	// Setup storage ...
+	t := new(testing.T)
+	ctrl := gomock.NewController(t)
+	s := database.NewMockStorage(ctrl)
+	s.EXPECT().
+		GetURLByID(gomock.Any(), "rb1t0eupmn2_").
+		Times(1).
+		Return(storage.Record{URL: "https://practicum.yandex.ru/learn/"}, nil)
+	// Setup request ...
+	handler := GetOriginalURLHandlerFunc(s)
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/rb1t0eupmn2_", nil)
+	// Run
+	handler(rr, req)
+	fmt.Println(rr.Body.String())
+
+	// Output:
+	// Original URL was https://practicum.yandex.ru/learn/
+}

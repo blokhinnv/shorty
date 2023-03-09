@@ -2,16 +2,14 @@ package sqlite
 
 import (
 	"database/sql"
-	"log"
-	"os"
+	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// SQL-запрос для создания таблицы для Url
+// createSQL - SQL-запрос для создания таблицы для URL.
 const createSQL = `
-DROP TABLE IF EXISTS Url;
-CREATE TABLE Url(
+CREATE TABLE IF NOT EXISTS Url(
 	encoding_id INTEGER PRIMARY KEY AUTOINCREMENT,
 	url VARCHAR NOT NULL,
 	url_id VARCHAR NOT NULL,
@@ -20,25 +18,24 @@ CREATE TABLE Url(
 	requested_at VARCHAR DEFAULT (datetime('now','localtime')),
 	is_deleted BOOLEAN DEFAULT FALSE
 );
-CREATE UNIQUE INDEX idx_url ON Url(url);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_url ON Url(url);
 `
 
-// При инициализации создадим БД, если ее не существует
-func InitDB(dbFile string, clearOnStart bool) {
-	// Проверка существования БД
-	if _, err := os.Stat(dbFile); err == nil && clearOnStart {
-		err := os.Remove(dbFile)
-		if err != nil {
-			log.Fatalf("ClearOnStart error: %v", err)
-		}
-	}
+// InitDB инициализирует структуру БД для дальнейшей работы
+func InitDB(dbFile string, clearOnStart bool) error {
 	// Создание таблицы в БД
 	db, err := sql.Open("sqlite3", dbFile)
 	if err != nil {
-		log.Fatalf("can't access to DB %s: %v\n", dbFile, err)
+		return fmt.Errorf("can't access to DB %s: %v", dbFile, err)
 	}
 	defer db.Close()
 	if _, err = db.Exec(createSQL); err != nil {
-		log.Fatalf("can't create table Url: %v\n", err)
+		return fmt.Errorf("can't create table Url: %v", err)
 	}
+	if clearOnStart {
+		if _, err = db.Exec(clearSQL); err != nil {
+			return fmt.Errorf("can't create table Url: %v", err)
+		}
+	}
+	return nil
 }

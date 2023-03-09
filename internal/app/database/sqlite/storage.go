@@ -6,12 +6,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/mattn/go-sqlite3"
+	log "github.com/sirupsen/logrus"
 )
 
+// SQL-запросы для реализации необходимой логики.
 const (
 	selectByURLIDSQL  = "SELECT url, user_id, is_deleted FROM Url WHERE url_id = ?"
 	selectByUserIDSQL = "SELECT url, url_id, is_deleted FROM Url WHERE user_id = ?"
@@ -21,13 +22,17 @@ const (
 	restoreSQL        = "UPDATE Url SET is_deleted=FALSE, user_id=? WHERE url_id=? AND is_deleted=TRUE;"
 )
 
+// SQLiteStorage реализует интерфейс Storage на основе SQLite.
 type SQLiteStorage struct {
 	db *sql.DB
 }
 
-// Конструктор нового хранилища URL
+// NewSQLiteStorage - Конструктор нового хранилища URL.
 func NewSQLiteStorage(conf *SQLiteConfig) (*SQLiteStorage, error) {
-	InitDB(conf.DBPath, conf.ClearOnStart)
+	err := InitDB(conf.DBPath, conf.ClearOnStart)
+	if err != nil {
+		return nil, err
+	}
 	db, err := sql.Open("sqlite3", conf.DBPath)
 	if err != nil {
 		return nil, fmt.Errorf("can't access to DB %s: %v", conf.DBPath, err)
@@ -35,16 +40,16 @@ func NewSQLiteStorage(conf *SQLiteConfig) (*SQLiteStorage, error) {
 	return &SQLiteStorage{db}, nil
 }
 
-// Метод для добавления нового URL в БД
+// AddURL - метод для добавления нового URL в БД.
 func (s *SQLiteStorage) AddURL(ctx context.Context, url, urlID string, userID uint32) error {
 	res, err := s.db.ExecContext(ctx, restoreSQL, userID, urlID)
 	if err != nil {
-		log.Printf("Error while updating URL: %v", err)
+		log.Infof("Error while updating URL: %v", err)
 		return err
 	}
 	n, err := res.RowsAffected()
 	if err != nil {
-		log.Printf("Error while updating URL: %v", err)
+		log.Infof("Error while updating URL: %v", err)
 		return err
 	}
 	// восстановили запись => добавлять не надо
@@ -54,7 +59,7 @@ func (s *SQLiteStorage) AddURL(ctx context.Context, url, urlID string, userID ui
 	// надо добавить
 	_, err = s.db.ExecContext(ctx, insertSQL, url, urlID, userID)
 	if err != nil {
-		log.Printf("Error while adding URL: %v", err)
+		log.Infof("Error while adding URL: %v", err)
 		if sqlerr, ok := err.(sqlite3.Error); ok {
 			if sqlerr.Code == sqlite3.ErrConstraint {
 				return fmt.Errorf(
@@ -68,11 +73,11 @@ func (s *SQLiteStorage) AddURL(ctx context.Context, url, urlID string, userID ui
 		}
 		return err
 	}
-	log.Printf("Added %v=>%v to storage\n", url, urlID)
+	log.Infof("Added %v=>%v to storage\n", url, urlID)
 	return nil
 }
 
-// Возвращает URL по его ID в БД
+// GetURLByID возвращает URL по его ID в БД.
 func (s *SQLiteStorage) GetURLByID(ctx context.Context, urlID string) (storage.Record, error) {
 	rec := storage.Record{URLID: urlID}
 	var isDeleted bool
@@ -88,7 +93,7 @@ func (s *SQLiteStorage) GetURLByID(ctx context.Context, urlID string) (storage.R
 	return rec, nil
 }
 
-// Получает URLs по ID пользователя
+// GetURLsByUser получает URLs по ID пользователя.
 func (s *SQLiteStorage) GetURLsByUser(
 	ctx context.Context,
 	userID uint32,
@@ -122,7 +127,7 @@ func (s *SQLiteStorage) GetURLsByUser(
 	return results, nil
 }
 
-// Добавляет пакет URLов в хранилище
+// AddURLBatch добавляет пакет URLов в хранилище.
 func (s *SQLiteStorage) AddURLBatch(
 	ctx context.Context,
 	urlIDs map[string]string,
@@ -183,6 +188,7 @@ func (s *SQLiteStorage) AddURLBatch(
 	return nil
 }
 
+// DeleteMany устанавливает отметку об удалении URL.
 func (s *SQLiteStorage) DeleteMany(ctx context.Context, userID uint32, urlIDs []string) error {
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -224,21 +230,21 @@ func (s *SQLiteStorage) DeleteMany(ctx context.Context, userID uint32, urlIDs []
 	if err := tx.Commit(); err != nil {
 		log.Fatalf("update drivers: unable to commit: %v", err)
 	}
-	log.Printf("Set %v as deleted\n", updated)
+	log.Infof("Set %v as deleted\n", updated)
 	return nil
 }
 
-// Закрывает соединение с SQLite
+// Close закрывает соединение с SQLite.
 func (s *SQLiteStorage) Close(ctx context.Context) {
 	s.db.Close()
 }
 
-// Проверяет соединение с хранилищем
+// Ping проверяет соединение с хранилищем.
 func (s *SQLiteStorage) Ping(ctx context.Context) bool {
 	return s.db.Ping() == nil
 }
 
-// Очищает хранилище
+// Clear очищает хранилище.
 func (s *SQLiteStorage) Clear(ctx context.Context) error {
 	_, err := s.db.ExecContext(ctx, clearSQL)
 	return err

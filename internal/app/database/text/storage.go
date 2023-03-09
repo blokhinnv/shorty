@@ -7,19 +7,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/blokhinnv/shorty/internal/app/storage"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 )
 
-func init() {
-	log.SetOutput(os.Stdout)
-}
-
+// TextStorage реализует интерфейс Storage на основе текстового файла.
 type TextStorage struct {
 	filePath  string
 	ttlOnDisk time.Duration
@@ -31,6 +28,7 @@ type TextStorage struct {
 	mu        sync.Mutex
 }
 
+// Настройки для выборки данных из текстового файла.
 const (
 	ByUserID = iota
 	ByURLID
@@ -38,6 +36,7 @@ const (
 	ByUserIDAndURLID
 )
 
+// TextStorageRequest - структура для оформления запроса к хранилищу.
 type TextStorageRequest struct {
 	URL    string
 	URLID  string
@@ -47,7 +46,7 @@ type TextStorageRequest struct {
 	URLIDs []string
 }
 
-// Конструктор нового хранилища URL
+// NewTextStorage - конструктор нового хранилища URL.
 func NewTextStorage(conf *TextStorageConfig) (*TextStorage, error) {
 	if conf.ClearOnStart {
 		os.Remove(conf.FileStoragePath)
@@ -72,12 +71,12 @@ func NewTextStorage(conf *TextStorageConfig) (*TextStorage, error) {
 
 // -------- Логика для обновления хранилища ----------
 
-// Обновляет файл хранилища: удаляет старые URL и обновляет информацию
-// о последнем запросе
+// UpdateStorage обновляет файл хранилища: удаляет старые URL
+// и обновляет информацию о последнем запросе
 func (s *TextStorage) UpdateStorage() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	log.Printf("Updating disk storage...\n")
+	log.Infof("Updating disk storage...\n")
 
 	file, err := os.OpenFile(s.filePath, os.O_RDONLY, 0777)
 	if err != nil {
@@ -96,12 +95,12 @@ func (s *TextStorage) UpdateStorage() {
 		if time.Since(r.Added) < s.ttlOnDisk {
 			if reqTime, ok := s.toUpdate[r.URL]; ok {
 				r.RequestedAt = reqTime
-				log.Printf("Updated last request time of %+v \n", r)
+				log.Infof("Updated last request time of %+v \n", r)
 				delete(s.toUpdate, r.URL)
 			}
 			newDB = append(newDB, r)
 		} else {
-			log.Printf("Removing %+v from disk \n", r)
+			log.Infof("Removing %+v from disk \n", r)
 		}
 	}
 	file.Close()
@@ -123,7 +122,7 @@ func (s *TextStorage) UpdateStorage() {
 	s.db = newDB
 }
 
-// Запускает обновление файла по таймеру
+// registerUpdateStorage запускает обновление файла по таймеру.
 func (s *TextStorage) registerUpdateStorage() {
 	ticker := time.NewTicker(s.ttlOnDisk)
 	go func() {
@@ -133,19 +132,20 @@ func (s *TextStorage) registerUpdateStorage() {
 	}()
 }
 
-// Удаляет из памяти те URL, которые запрашивались давно
+// DeleteNotRequested удаляет из памяти те URL, которые запрашивались давно.
 func (s *TextStorage) DeleteNotRequested() {
 	filtered := make([]storage.Record, 0)
 	for _, rec := range s.db {
 		if time.Since(rec.RequestedAt) < s.ttlInMem {
 			filtered = append(filtered, rec)
 		} else {
-			log.Printf("Remove %+v from memory\n", rec)
+			log.Infof("Remove %+v from memory\n", rec)
 		}
 	}
 	s.db = filtered
 }
 
+// AppendFromBuffer обновляет файл информацией из буфера.
 func (s *TextStorage) AppendFromBuffer() error {
 	file, err := os.OpenFile(s.filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
@@ -161,6 +161,7 @@ func (s *TextStorage) AppendFromBuffer() error {
 	return nil
 }
 
+// UpdateFile обновляет файл на основе мапы записей.
 func (s *TextStorage) UpdateFile(newRecords map[string]storage.Record) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -205,7 +206,7 @@ func (s *TextStorage) UpdateFile(newRecords map[string]storage.Record) error {
 	return nil
 }
 
-// Ищет в памяти URL по urlID
+// FindInMem ищет в памяти URL по urlID.
 func (s *TextStorage) FindInMem(request TextStorageRequest) ([]storage.Record, error) {
 	results := make([]storage.Record, 0)
 
@@ -231,7 +232,7 @@ func (s *TextStorage) FindInMem(request TextStorageRequest) ([]storage.Record, e
 	return results, nil
 }
 
-// Ищем в файле URL по urlID
+// FindInFile ищет в файле URL по urlID.
 func (s *TextStorage) FindInFile(request TextStorageRequest) ([]storage.Record, error) {
 	results := make([]storage.Record, 0)
 	file, err := os.OpenFile(s.filePath, os.O_RDONLY, 0777)
@@ -269,7 +270,7 @@ func (s *TextStorage) FindInFile(request TextStorageRequest) ([]storage.Record, 
 
 // ------ Реализация интерфейса Storage ---------
 
-// Метод для добавления нового URL в файле
+// AddURL - метод для добавления нового URL в файл.
 func (s *TextStorage) AddURL(ctx context.Context, url, urlID string, userID uint32) error {
 	// Попробуем найти запись в хранилище - если есть, то добавлять не надо
 	req := TextStorageRequest{URL: url, Size: 1, How: ByURL}
@@ -309,7 +310,7 @@ func (s *TextStorage) AddURL(ctx context.Context, url, urlID string, userID uint
 	if err != nil {
 		return err
 	}
-	log.Printf("Added %v=>%v to buffer\n", url, urlID)
+	log.Infof("Added %v=>%v to buffer\n", url, urlID)
 	// добавим в память
 	s.db = append(s.db, r)
 	// добавим в файл
@@ -322,7 +323,7 @@ func (s *TextStorage) AddURL(ctx context.Context, url, urlID string, userID uint
 	return nil
 }
 
-// Возвращает URL по его ID (сначала смотрит в памяти, потом в файле)
+// GetURLByID возвращает URL по его ID (сначала смотрит в памяти, потом в файле).
 func (s *TextStorage) GetURLByID(ctx context.Context, urlID string) (storage.Record, error) {
 	req := TextStorageRequest{URLID: urlID, Size: 1, How: ByURLID}
 	r, err := s.FindInMem(req)
@@ -339,8 +340,9 @@ func (s *TextStorage) GetURLByID(ctx context.Context, urlID string) (storage.Rec
 	return rec, nil
 }
 
-// Получает URLs по ID пользователя (смотрим только в файле, т.к. его все равно придется
-// смотреть, чтобы быть уверенным, что нашли все)
+// GetURLsByUser получает URLs по ID пользователя.
+// Смотрим только в файле, т.к. его все равно придется
+// смотреть, чтобы быть уверенным, что нашли все.
 func (s *TextStorage) GetURLsByUser(ctx context.Context, userID uint32) ([]storage.Record, error) {
 	req := TextStorageRequest{UserID: userID, Size: 0, How: ByUserID}
 	rFile, err := s.FindInFile(req)
@@ -356,7 +358,7 @@ func (s *TextStorage) GetURLsByUser(ctx context.Context, userID uint32) ([]stora
 	return result, nil
 }
 
-// Добавляет пакет URLов в хранилище
+// AddURLBatch добавляет пакет URLов в хранилище.
 func (s *TextStorage) AddURLBatch(
 	ctx context.Context,
 	urlIDs map[string]string,
@@ -386,7 +388,7 @@ func (s *TextStorage) AddURLBatch(
 			if err != nil {
 				return err
 			}
-			log.Printf("Added %v=>%v to buffer\n", url, urlID)
+			log.Infof("Added %v=>%v to buffer\n", url, urlID)
 			continue
 		}
 		// нашли такой урл
@@ -417,6 +419,7 @@ func (s *TextStorage) AddURLBatch(
 	return nil
 }
 
+// DeleteMany устанавливает отметку об удалении URL.
 func (s *TextStorage) DeleteMany(ctx context.Context, userID uint32, urlIDs []string) error {
 	// удалить из памяти
 	newMem := make([]storage.Record, 0, len(s.db))
@@ -447,16 +450,17 @@ func (s *TextStorage) DeleteMany(ctx context.Context, userID uint32, urlIDs []st
 	return nil
 }
 
-// Закрывает соединение с хранилищем
+// Close закрывает соединение с хранилищем
 func (s *TextStorage) Close(ctx context.Context) {
 }
 
+// Ping проверяет соединение с хранилищем.
 func (s *TextStorage) Ping(ctx context.Context) bool {
 	_, err := os.Stat(s.filePath)
 	return err == nil
 }
 
-// Очищает хранилище
+// Clear очищает хранилище.
 func (s *TextStorage) Clear(ctx context.Context) error {
 	s.db = s.db[:0]
 	err := os.Remove(s.filePath)

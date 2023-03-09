@@ -1,8 +1,10 @@
+// Пакет database содержит реализации Storage на основе различных типов хранилищ.
 package database
 
 import (
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/blokhinnv/shorty/internal/app/database/postgres"
 	"github.com/blokhinnv/shorty/internal/app/database/sqlite"
@@ -11,19 +13,15 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
+// Типы хранилищ.
 const (
 	Postgres = iota
 	Text
 	SQLite
 )
 
-const (
-	StorageEnvVar      = "STORAGE"
-	FileStoragePathVar = "FILE_STORAGE_PATH"
-)
-
-// Определяет, какой тип хранилища надо использовать
-// на основе конфига
+// inferStorageType определяет, какой тип хранилища надо использовать
+// на основе конфига.
 func inferStorageType(cfg *config.ServerConfig) int {
 	switch {
 	case cfg.PostgresDatabaseDSN != "":
@@ -35,7 +33,7 @@ func inferStorageType(cfg *config.ServerConfig) int {
 	}
 }
 
-// Конструктор хранилища на основе БД
+// NewDBStorage - конструктор хранилища на основе БД.
 func NewDBStorage(cfg *config.ServerConfig) (storage.Storage, error) {
 	storageType := inferStorageType(cfg)
 	switch storageType {

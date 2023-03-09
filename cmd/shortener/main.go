@@ -5,12 +5,13 @@ package main
 
 import (
 	"flag"
-	"log"
 	"os"
+
+	"github.com/joho/godotenv"
+	log "github.com/sirupsen/logrus"
 
 	s "github.com/blokhinnv/shorty/internal/app/server"
 	"github.com/blokhinnv/shorty/internal/app/server/config"
-	"github.com/joho/godotenv"
 )
 
 func parseConfig(cfg *config.FlagConfig) {
@@ -41,6 +42,7 @@ func main() {
 	// флаги надо собрать в одном месте на старте
 	// и прокидывать через кучу слоев....
 	// раньше это была глобальная переменная для пакета
+
 	flagCfg := config.FlagConfig{}
 	parseConfig(&flagCfg)
 	serverCfg, err := config.NewServerConfig(&flagCfg)

@@ -4,19 +4,23 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
+	database "github.com/blokhinnv/shorty/internal/app/database/mock"
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/go-resty/resty/v2"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// Функция для заполнения хранилища примерами
+// addRecords - функция для заполнения хранилища примерами.
 func addRecords(
 	t *testing.T,
 	s storage.Storage,
@@ -34,7 +38,7 @@ func addRecords(
 	return answer
 }
 
-// Тесты для GET-запроса
+// ListOfURLsTestLogic - логика тестов для GET-запроса.
 func ListOfURLsTestLogic(t *testing.T, testCfg TestConfig) {
 	s, err := db.NewDBStorage(testCfg.serverCfg)
 	if err != nil {
@@ -108,14 +112,41 @@ func ListOfURLsTestLogic(t *testing.T, testCfg TestConfig) {
 	})
 }
 
+// Test_ListOfURLs_SQLite - запуск тестов для SQLite.
 func Test_ListOfURLs_SQLite(t *testing.T) {
 	ListOfURLsTestLogic(t, NewTestConfig("test_sqlite.env"))
 }
 
+// Test_ListOfURLs_Text - запуск тестов для текстового хранилища.
 func Test_ListOfURLs_Text(t *testing.T) {
 	ListOfURLsTestLogic(t, NewTestConfig("test_text.env"))
 }
 
+// Test_ListOfURLs_Postgres - запуск тестов для Postgres.
 // func Test_ListOfURLs_Postgres(t *testing.T) {
 // 	ListOfURLsTestLogic(t, NewTestConfig("test_postgres.env"))
 // }
+
+func ExampleGetOriginalURLsHandlerFunc() {
+	// Setup storage ...
+	t := new(testing.T)
+	ctrl := gomock.NewController(t)
+	s := database.NewMockStorage(ctrl)
+	answer := []storage.Record{{URL: "https://practicum.yandex.ru/learn/", URLID: "rb1t0eupmn2_"}}
+	s.EXPECT().GetURLsByUser(gomock.Any(), uint32(1)).Times(1).Return(answer, nil)
+	// Setup request ...
+	handler := GetOriginalURLsHandlerFunc(s)
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/user/urls", nil)
+	// Setup context ...
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, middleware.BaseURLCtxKey, "http://localhost:8080")
+	ctx = context.WithValue(ctx, middleware.UserIDCtxKey, uint32(1))
+
+	// Run
+	handler(rr, req.WithContext(ctx))
+	fmt.Println(rr.Body.String())
+
+	// Output:
+	// [{"original_url":"https://practicum.yandex.ru/learn/","short_url":"http://localhost:8080/rb1t0eupmn2_"}]
+}

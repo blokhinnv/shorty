@@ -11,21 +11,26 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-var statusesToCompress = []int{
-	http.StatusCreated,
-	http.StatusOK,
-}
-var compressableContentTypes = []string{
-	"application/javascript",
-	"application/json",
-	"text/css",
-	"text/html",
-	"text/plain",
-	"text/xml",
-}
+// Допустимые статусы и Content-Type
+var (
+	statusesToCompress = []int{
+		http.StatusCreated,
+		http.StatusOK,
+	}
+	compressableContentTypes = []string{
+		"application/javascript",
+		"application/json",
+		"text/css",
+		"text/html",
+		"text/plain",
+		"text/xml",
+	}
+)
 
+// minBytesToCompress - минимальный размер тела для подключения сжатия.
 const minBytesToCompress = 10
 
+// gzipWriter - middleware для сжатия ответа
 type gzipWriter struct {
 	http.ResponseWriter // встраиваем ResponseWriter и забираем методы
 	Writer              io.Writer
@@ -33,12 +38,14 @@ type gzipWriter struct {
 	buf                 *bytes.Buffer
 }
 
-// Переопределенный метод ResponseWriter: накапливает
-// сообщения от последующих обработчиков в буфере
+// Write - переопределенный метод ResponseWriter. Накапливает
+// сообщения от последующих обработчиков в буфере.
 func (gzw *gzipWriter) Write(b []byte) (int, error) {
 	return gzw.buf.Write(b)
 }
 
+// writeResponse выявляет необходимость в сжатии и подменяет
+// gzw.Writer и необходимости.
 func (gzw *gzipWriter) writeResponse() {
 	// если кодировать нужно, то создаем gzip.Writer,
 	// заменяем дефолтный Writer и
@@ -53,8 +60,9 @@ func (gzw *gzipWriter) writeResponse() {
 	gzw.Writer.Write(gzw.buf.Bytes())
 }
 
-// Переопределенный метод ResponseWriter: проверяет, нужно ли
-// кодировать данные на основе statusCode и contentType
+// WriteHeader = переопределенный метод ResponseWriter: проверяет, нужно ли
+// кодировать данные на основе statusCode и contentType.
+//
 // я хочу добавить проверки на тип контента и размер
 // я вижу так: мне нужно вкрячиться куда-то после вызовов
 // (может быть несколько!) w.Write, которые будут в самих обработчиках
@@ -71,7 +79,7 @@ func (gzw *gzipWriter) WriteHeader(statusCode int) {
 	// поэтому отложим вызов gzw.ResponseWriter.WriteHeader до тех пор
 }
 
-// Проверяет, имеет ли смысл сжимать данные на основе content type
+// IsCompressableContent проверяет, имеет ли смысл сжимать данные на основе content type.
 func (gzw *gzipWriter) IsCompressableContent() bool {
 	ct := gzw.ResponseWriter.Header().Get("Content-type")
 	for _, cct := range compressableContentTypes {
@@ -82,18 +90,19 @@ func (gzw *gzipWriter) IsCompressableContent() bool {
 	return false
 }
 
-// Проверяет, имеет ли смысл сжимать данные на основе их размера
+// IsCompressableSize проверяет, имеет ли смысл сжимать данные на основе их размера.
 func (gzw *gzipWriter) IsCompressableSize(b []byte) bool {
 	return binary.Size(b) >= minBytesToCompress
 }
 
-// Проверяет, имеет ли смысл сжимать данные на основе статуса
-// ошибки, редиректы и т.д. нужно просто скипать
+// IsCompressableStatus проверяет, имеет ли смысл сжимать данные на основе статуса
+// ошибки, редиректы и т.д. нужно просто скипать.
 func (gzw *gzipWriter) IsCompressableStatus() bool {
 	return slices.Contains(statusesToCompress, gzw.statusCode)
 }
 
-// Корректно закрывает gzip.Writer
+// Close корректно закрывает gzip.Writer.
+//
 // Writer хочется не забыть закрыть, но эти вызовы нужно отложить
 // до завершения ResponseGZipCompess, иначе не получится записать ответ
 func (gzw *gzipWriter) Close() {
@@ -105,13 +114,13 @@ func (gzw *gzipWriter) Close() {
 	w.Close()
 }
 
-// Конструктор gzipWriter
+// NewGzipWriter - конструктор gzipWriter.
 func NewGzipWriter(w http.ResponseWriter) *gzipWriter {
 	buf := new(bytes.Buffer)
 	return &gzipWriter{ResponseWriter: w, Writer: w, buf: buf}
 }
 
-// Middleware для сжатия ответа
+// ResponseGZipCompess возвращает обработчик middleware.
 func ResponseGZipCompess(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// если клиент не умеет декодировать gzip, не будем кодировать

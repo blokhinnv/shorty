@@ -1,0 +1,48 @@
+Type: inuse_space
+Time: Mar 4, 2023 at 6:08pm (MSK)
+Showing nodes accounting for 16.02kB, 0.36% of 4505kB total
+      flat  flat%   sum%        cum   cum%
+  544.67kB 12.09% 12.09%   544.67kB 12.09%  compress/flate.(*compressor).init
+ -528.17kB 11.72%  0.37%  -528.17kB 11.72%  regexp.(*Regexp).get
+ -512.50kB 11.38% 11.01%  -512.50kB 11.38%  runtime.allocm
+  512.02kB 11.37%  0.36%   512.02kB 11.37%  encoding/json.newStructEncoder
+         0     0%  0.36%   544.67kB 12.09%  compress/flate.NewWriter
+         0     0%  0.36%   544.67kB 12.09%  compress/gzip.(*Writer).Write
+         0     0%  0.36%   512.02kB 11.37%  encoding/json.(*encodeState).marshal
+         0     0%  0.36%   512.02kB 11.37%  encoding/json.(*encodeState).reflectValue
+         0     0%  0.36%   512.02kB 11.37%  encoding/json.Marshal
+         0     0%  0.36%   512.02kB 11.37%  encoding/json.newArrayEncoder
+         0     0%  0.36%   512.02kB 11.37%  encoding/json.newSliceEncoder
+         0     0%  0.36%   512.02kB 11.37%  encoding/json.newTypeEncoder
+         0     0%  0.36%   512.02kB 11.37%  encoding/json.typeEncoder
+         0     0%  0.36%   512.02kB 11.37%  encoding/json.valueEncoder
+         0     0%  0.36%  -528.17kB 11.72%  github.com/asaskevich/govalidator.IsURL
+         0     0%  0.36%  -528.17kB 11.72%  github.com/asaskevich/govalidator.ValidateStruct
+         0     0%  0.36%  -528.17kB 11.72%  github.com/asaskevich/govalidator.typeCheck
+         0     0%  0.36%  -528.17kB 11.72%  github.com/blokhinnv/shorty/internal/app/server/config.NewServerConfig
+         0     0%  0.36%   512.02kB 11.37%  github.com/blokhinnv/shorty/internal/app/server/routes.(*GetShortURLsBatchHandler).Handler
+         0     0%  0.36%  1056.69kB 23.46%  github.com/blokhinnv/shorty/internal/app/server/routes/middleware.(*Auth).Handler.func1
+         0     0%  0.36%   544.67kB 12.09%  github.com/blokhinnv/shorty/internal/app/server/routes/middleware.(*gzipWriter).writeResponse
+         0     0%  0.36%  1056.69kB 23.46%  github.com/blokhinnv/shorty/internal/app/server/routes/middleware.BaseURLCtx.func1.1
+         0     0%  0.36%  1056.69kB 23.46%  github.com/blokhinnv/shorty/internal/app/server/routes/middleware.RequestGZipDecompress.func1
+         0     0%  0.36%  1056.69kB 23.46%  github.com/blokhinnv/shorty/internal/app/server/routes/middleware.ResponseGZipCompess.func1
+         0     0%  0.36%  1056.69kB 23.46%  github.com/go-chi/chi/v5.(*Mux).Mount.func1
+         0     0%  0.36%  1056.69kB 23.46%  github.com/go-chi/chi/v5.(*Mux).ServeHTTP
+         0     0%  0.36%  1056.69kB 23.46%  github.com/go-chi/chi/v5.(*Mux).routeHTTP
+         0     0%  0.36%   544.67kB 12.09%  github.com/go-chi/chi/v5/middleware.RequestLogger.func1.1
+         0     0%  0.36%  -528.17kB 11.72%  main.main
+         0     0%  0.36%   544.67kB 12.09%  net/http.(*conn).serve
+         0     0%  0.36%  1056.69kB 23.46%  net/http.HandlerFunc.ServeHTTP
+         0     0%  0.36%   544.67kB 12.09%  net/http.serverHandler.ServeHTTP
+         0     0%  0.36%  -528.17kB 11.72%  regexp.(*Regexp).MatchString (inline)
+         0     0%  0.36%  -528.17kB 11.72%  regexp.(*Regexp).doExecute
+         0     0%  0.36%  -528.17kB 11.72%  regexp.(*Regexp).doMatch (inline)
+         0     0%  0.36%  -528.17kB 11.72%  runtime.main
+         0     0%  0.36%  -512.50kB 11.38%  runtime.mstart
+         0     0%  0.36%  -512.50kB 11.38%  runtime.mstart0
+         0     0%  0.36%  -512.50kB 11.38%  runtime.mstart1
+         0     0%  0.36%  -512.50kB 11.38%  runtime.newm
+         0     0%  0.36%  -512.50kB 11.38%  runtime.resetspinning
+         0     0%  0.36%  -512.50kB 11.38%  runtime.schedule
+         0     0%  0.36%  -512.50kB 11.38%  runtime.startm
+         0     0%  0.36%  -512.50kB 11.38%  runtime.wakep

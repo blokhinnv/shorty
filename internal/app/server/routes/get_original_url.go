@@ -11,7 +11,8 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
-// Эндпоинт GET /{id} принимает в качестве URL-параметра идентификатор
+// GetOriginalURLHandlerFunc - реализация эндпоинт GET /{id}.
+// Принимает в качестве URL-параметра идентификатор
 // сокращённого URL и возвращает ответ
 // с кодом 307 и оригинальным URL в HTTP-заголовке Location.
 func GetOriginalURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {

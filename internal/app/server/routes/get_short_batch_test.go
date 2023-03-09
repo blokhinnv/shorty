@@ -1,17 +1,23 @@
 package routes
 
 import (
+	"bytes"
 	"context"
+	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
+	database "github.com/blokhinnv/shorty/internal/app/database/mock"
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/go-resty/resty/v2"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
+// ListOfURLsTestLogic - логика тестов для сокращения батчами.
 func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
 	// Если стартануть сервер cmd/shortener/main,
 	// то будет использоваться его роутинг даже в тестах :о
@@ -119,14 +125,46 @@ func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
 	}
 }
 
+// Test_ShortenBatch_SQLite - запуск тестов для SQLite.
 func Test_ShortenBatch_SQLite(t *testing.T) {
 	ShortenBatchTestLogic(t, NewTestConfig("test_sqlite.env"))
 }
 
+// Test_ShortenBatch_Text - запуск тестов для текстового хранилища.
 func Test_ShortenBatch_Text(t *testing.T) {
 	ShortenBatchTestLogic(t, NewTestConfig("test_text.env"))
 }
 
+// Test_ShortenBatch_Postgres - запуск тестов для Postgres.
 // func Test_ShortenBatch_Postgres(t *testing.T) {
 // 	ShortenBatchTestLogic(t, NewTestConfig("test_postgres.env"))
 // }
+
+func ExampleGetShortURLsBatchHandler_Handler() {
+	// Setup storage ...
+	t := new(testing.T)
+	ctrl := gomock.NewController(t)
+	s := database.NewMockStorage(ctrl)
+	s.EXPECT().AddURLBatch(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil)
+	// Setup request ...
+	handler := NewGetShortURLsBatchHandler(s)
+	rr := httptest.NewRecorder()
+	body := bytes.NewBuffer(
+		[]byte(
+			`[{"correlation_id":"test1","original_url":"https://mail.ru/"},{"correlation_id":"test2","original_url":"https://dzen.ru/"}]`,
+		),
+	)
+	req, _ := http.NewRequest(http.MethodPost, "/shorten/batch", body)
+	req.Header.Set("Content-Type", "application/json")
+	// Setup context ...
+	ctx := req.Context()
+	ctx = context.WithValue(ctx, middleware.BaseURLCtxKey, "http://localhost:8080")
+	ctx = context.WithValue(ctx, middleware.UserIDCtxKey, uint32(1))
+
+	// Run
+	handler.Handler(rr, req.WithContext(ctx))
+	fmt.Println(rr.Body.String())
+
+	// Output:
+	// [{"correlation_id":"test1","short_url":"http://localhost:8080/f3o7hcrcrupz1"},{"correlation_id":"test2","short_url":"http://localhost:8080/k7os90zw0x74"}]
+}

@@ -5,25 +5,29 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
+// DeleteURLsHandler - структура для реализации хендлера на удаление URL.
 type DeleteURLsHandler struct {
 	s              storage.Storage
 	delURLsCh      chan Job
 	expireDuration time.Duration
 }
 
+// Job - задачи на удаления, которые обрабатываются горутинами.
 type Job struct {
 	URL    string
 	UserID uint32
 }
 
+// NewDeleteURLsHandler - конструктор DeleteURLsHandler.
 func NewDeleteURLsHandler(s storage.Storage, delURLsChBufSize int) *DeleteURLsHandler {
 	h := &DeleteURLsHandler{
 		s:              s,
@@ -34,6 +38,7 @@ func NewDeleteURLsHandler(s storage.Storage, delURLsChBufSize int) *DeleteURLsHa
 	return h
 }
 
+// DeleteURLs подготавливает батч для удаления и передает хранилищу.
 func (h *DeleteURLsHandler) DeleteURLs(jobsToDelete []Job) {
 	if len(jobsToDelete) == 0 {
 		return
@@ -52,6 +57,7 @@ func (h *DeleteURLsHandler) DeleteURLs(jobsToDelete []Job) {
 	}
 }
 
+// Loop - основной цикл горутин для удаления URL.
 func (h *DeleteURLsHandler) Loop() {
 	go func() {
 		jobs := make([]Job, 0)
@@ -71,8 +77,8 @@ func (h *DeleteURLsHandler) Loop() {
 	}()
 }
 
-// Эндпоинт DELETE /api/user/urls принимает
-// список идентификаторов сокращённых URL для
+// Handler - реализация эндпоинта DELETE /api/user/urls.
+// Принимает список идентификаторов сокращённых URL для
 // удаления в формате: [ "a", "b", "c", "d", ...].
 func (h *DeleteURLsHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)

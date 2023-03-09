@@ -1,11 +1,11 @@
-// Пакет для создания БД - хранилища URL
 package postgres
 
 import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/jackc/pgx/v5"
@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// SQL-запросы для реализации необходимой логики.
 const (
 	selectByURLIDSQL      = "SELECT url, user_id, is_deleted FROM Url WHERE url_id = $1;"
 	selectByUserIDSQL     = "SELECT url, url_id, is_deleted FROM Url WHERE user_id = $1;"
@@ -23,11 +24,12 @@ const (
 	clearSQL              = "DELETE FROM Url;"
 )
 
+// PostgresStorage реализует интерфейс Storage на основе Postgres.
 type PostgresStorage struct {
 	conn *pgxpool.Pool
 }
 
-// Конструктор нового хранилища URL
+// NewPostgresStorage - Конструктор нового хранилища URL.
 func NewPostgresStorage(conf *PostgresConfig) (*PostgresStorage, error) {
 	// до реализации удаления работало так:
 	// conn, err := pgx.Connect(context.Background(), conf.DatabaseDSN)
@@ -44,16 +46,18 @@ func NewPostgresStorage(conf *PostgresConfig) (*PostgresStorage, error) {
 		log.Fatalln("Unable to create connection pool:", err)
 	}
 
-	InitDB(conn, conf.ClearOnStart)
-
+	err = InitDB(conn, conf.ClearOnStart)
+	if err != nil {
+		return nil, err
+	}
 	return &PostgresStorage{conn}, nil
 }
 
-// Метод для добавления нового URL в БД
+// AddURL - Метод для добавления нового URL в БД.
 func (s *PostgresStorage) AddURL(ctx context.Context, url, urlID string, userID uint32) error {
 	res, err := s.conn.Exec(ctx, restoreSQL, urlID, userID)
 	if err != nil {
-		log.Printf("Error while updating URL: %v", err)
+		log.Infof("Error while updating URL: %v", err)
 		return err
 	}
 	n := res.RowsAffected()
@@ -64,7 +68,7 @@ func (s *PostgresStorage) AddURL(ctx context.Context, url, urlID string, userID 
 	// нашли строку для восстановления => надо добавить
 	_, err = s.conn.Exec(ctx, insertSQL, url, urlID, userID)
 	if err != nil {
-		log.Printf("Error while adding URL: %v", err)
+		log.Infof("Error while adding URL: %v", err)
 		var pgerr *pgconn.PgError
 		if errors.As(err, &pgerr) {
 			if pgerr.Code == uniqueViolationCode {
@@ -79,11 +83,11 @@ func (s *PostgresStorage) AddURL(ctx context.Context, url, urlID string, userID 
 		}
 		return err
 	}
-	log.Printf("Added %v=>%v to storage\n", url, urlID)
+	log.Infof("Added %v=>%v to storage\n", url, urlID)
 	return nil
 }
 
-// Возвращает URL по его ID в БД
+// GetURLByID возвращает URL по его ID в БД.
 func (s *PostgresStorage) GetURLByID(ctx context.Context, urlID string) (storage.Record, error) {
 	rec := storage.Record{URLID: urlID}
 	// Получаем строки
@@ -101,7 +105,7 @@ func (s *PostgresStorage) GetURLByID(ctx context.Context, urlID string) (storage
 	return rec, nil
 }
 
-// Получает URLs по ID пользователя
+// GetURLsByUser получает URLs по ID пользователя.
 func (s *PostgresStorage) GetURLsByUser(
 	ctx context.Context,
 	userID uint32,
@@ -138,7 +142,7 @@ func (s *PostgresStorage) GetURLsByUser(
 	return results, nil
 }
 
-// Добавляет пакет URLов в хранилище
+// AddURLBatch добавляет пакет URLов в хранилище.
 func (s *PostgresStorage) AddURLBatch(
 	ctx context.Context,
 	urlIDs map[string]string,
@@ -172,11 +176,11 @@ func (s *PostgresStorage) AddURLBatch(
 	return nil
 }
 
-// Устанавливает отметку об удалении URL
+// DeleteMany устанавливает отметку об удалении URL.
 func (s *PostgresStorage) DeleteMany(ctx context.Context, userID uint32, urlIDs []string) error {
 	rows, err := s.conn.Query(ctx, deleteBatchByURLIDSQL, urlIDs, userID)
 	if err != nil {
-		log.Printf("Error while deleting URL: %v", err)
+		log.Infof("Error while deleting URL: %v", err)
 		return err
 	}
 	// не забудем закрыть объект!
@@ -197,22 +201,22 @@ func (s *PostgresStorage) DeleteMany(ctx context.Context, userID uint32, urlIDs 
 	if err := rows.Err(); err != nil {
 		return err
 	}
-	log.Printf("Set %v as deleted\n", updated)
+	log.Infof("Set %v as deleted\n", updated)
 	return nil
 
 }
 
-// Закрывает соединение с Postgres
+// Close закрывает соединение с Postgres.
 func (s *PostgresStorage) Close(ctx context.Context) {
 	s.conn.Close()
 }
 
-// Проверяет соединение с хранилищем
+// Ping проверяет соединение с хранилищем.
 func (s *PostgresStorage) Ping(ctx context.Context) bool {
 	return s.conn.Ping(ctx) == nil
 }
 
-// Очищает хранилище
+// Clear очищает хранилище.
 func (s *PostgresStorage) Clear(ctx context.Context) error {
 	_, err := s.conn.Exec(ctx, clearSQL)
 	return err

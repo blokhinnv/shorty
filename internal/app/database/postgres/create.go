@@ -2,15 +2,14 @@ package postgres
 
 import (
 	"context"
-	"log"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// SQL-запрос для создания таблицы для Url
+// SQL-запрос для создания таблицы для Url.
 const createSQL = `
-DROP TABLE IF EXISTS Url;
-CREATE TABLE Url(
+CREATE TABLE IF NOT EXISTS Url(
 	encoding_id SERIAL PRIMARY KEY,
 	url VARCHAR NOT NULL,
 	url_id VARCHAR NOT NULL,
@@ -19,27 +18,19 @@ CREATE TABLE Url(
 	requested_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 	is_deleted BOOLEAN DEFAULT FALSE
 );
-CREATE UNIQUE INDEX idx_url ON Url(url);
-`
-const existsSQL = `
-SELECT EXISTS (
-    SELECT FROM
-        pg_tables
-    WHERE
-        schemaname = 'public' AND
-        tablename  = 'Url'
-);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_url ON Url(url);
 `
 
-// При инициализации создадим БД, если ее не существует
-func InitDB(conn *pgxpool.Pool, clearOnStart bool) {
-	var exists bool
-	if err := conn.QueryRow(context.Background(), existsSQL).Scan(&exists); err != nil {
-		log.Fatalf("can't create table Url: %v\n", err)
+// InitDB инициализирует структуру БД для дальнейшей работы.
+func InitDB(conn *pgxpool.Pool, clearOnStart bool) error {
+	if _, err := conn.Exec(context.Background(), createSQL); err != nil {
+		return fmt.Errorf("can't create table Url: %v", err)
 	}
-	if !exists || clearOnStart {
-		if _, err := conn.Exec(context.Background(), createSQL); err != nil {
-			log.Fatalf("can't create table Url: %v\n", err)
+
+	if clearOnStart {
+		if _, err := conn.Exec(context.Background(), clearSQL); err != nil {
+			return fmt.Errorf("can't clear table: %v", err)
 		}
 	}
+	return nil
 }

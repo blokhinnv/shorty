@@ -1,3 +1,4 @@
+// Пакет shorten содержит логику сокращения URL.
 package shorten
 
 import (
@@ -9,18 +10,19 @@ import (
 	"github.com/cespare/xxhash/v2"
 )
 
+// Алфавит СС.
 const (
 	letters = "0123456789abcdefghijklmnopqrstuvwxyz_" // алфавит в 38-й СС
 	base    = 37
 )
 
-// Проверяет, является ли строка URL
+// isURL проверяет, является ли строка URL.
 func isURL(s string) bool {
 	_, err := url.ParseRequestURI(s)
 	return err == nil
 }
 
-// Переводит число в 38-ую СС
+// toShortenBase переводит число в 38-ую СС.
 func toShortenBase(urlUUID uint64) string {
 	var shortURL strings.Builder
 	if urlUUID == 0 {
@@ -33,7 +35,7 @@ func toShortenBase(urlUUID uint64) string {
 	return shortURL.String()
 }
 
-// Возвращает укороченный URL
+// GetShortURL возвращает укороченный URL.
 func GetShortURL(
 	s storage.Storage,
 	url string,
