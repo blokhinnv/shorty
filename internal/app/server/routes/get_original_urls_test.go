@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
-	database "github.com/blokhinnv/shorty/internal/app/database/mock"
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/blokhinnv/shorty/internal/app/storage"
@@ -18,6 +17,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 // addRecords - функция для заполнения хранилища примерами.
@@ -30,7 +30,7 @@ func addRecords(
 	longURLs := []string{"https://sqliteonline.com/", "https://mail.ru/"}
 	answer := make([]ShortenedURLSAnswer, len(longURLs))
 	for idx, longURL := range longURLs {
-		shortURLID, shortURL, err := shorten.GetShortURL(s, longURL, userID, baseURL)
+		shortURLID, shortURL, err := shorten.GetShortURL(longURL, userID, baseURL)
 		require.NoError(t, err)
 		s.AddURL(context.Background(), longURL, shortURLID, userID)
 		answer[idx] = ShortenedURLSAnswer{URL: longURL, URLID: shortURL}
@@ -38,8 +38,26 @@ func addRecords(
 	return answer
 }
 
-// ListOfURLsTestLogic - логика тестов для GET-запроса.
-func ListOfURLsTestLogic(t *testing.T, testCfg TestConfig) {
+type OriginalURLsSuite struct {
+	suite.Suite
+	ctrl    *gomock.Controller
+	db      *storage.MockStorage
+	handler http.HandlerFunc
+}
+
+func (suite *OriginalURLsSuite) SetupSuite() {
+	suite.ctrl = gomock.NewController(suite.T())
+	suite.db = storage.NewMockStorage(suite.ctrl)
+	suite.handler = GetOriginalURLsHandlerFunc(suite.db)
+}
+
+func (suite *OriginalURLsSuite) TearDownSuite() {
+	suite.ctrl.Finish()
+}
+
+// IntTestLogic - логика тестов для GET-запроса.
+func (suite *OriginalURLsSuite) IntTestLogic(testCfg TestConfig) {
+	t := suite.T()
 	s, err := db.NewDBStorage(testCfg.serverCfg)
 	if err != nil {
 		panic(err)
@@ -112,26 +130,40 @@ func ListOfURLsTestLogic(t *testing.T, testCfg TestConfig) {
 	})
 }
 
-// Test_ListOfURLs_SQLite - запуск тестов для SQLite.
-func Test_ListOfURLs_SQLite(t *testing.T) {
-	ListOfURLsTestLogic(t, NewTestConfig("test_sqlite.env"))
+// TestIntSQLite - запуск тестов для SQLite.
+func (suite *OriginalURLsSuite) TestIntSQLite() {
+	suite.IntTestLogic(NewTestConfig("test_sqlite.env"))
 }
 
-// Test_ListOfURLs_Text - запуск тестов для текстового хранилища.
-func Test_ListOfURLs_Text(t *testing.T) {
-	ListOfURLsTestLogic(t, NewTestConfig("test_text.env"))
+// TestIntText - запуск тестов для текстового хранилища.
+func (suite *OriginalURLsSuite) TestIntText() {
+	suite.IntTestLogic(NewTestConfig("test_text.env"))
 }
 
-// Test_ListOfURLs_Postgres - запуск тестов для Postgres.
-// func Test_ListOfURLs_Postgres(t *testing.T) {
-// 	ListOfURLsTestLogic(t, NewTestConfig("test_postgres.env"))
-// }
+func (suite *OriginalURLsSuite) TestNoBaseURLCtxKey() {
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/shorten/batch", nil)
+	suite.handler.ServeHTTP(rr, req)
+	suite.Equal(http.StatusInternalServerError, rr.Code)
+}
+
+func (suite *OriginalURLsSuite) TestNoUserIDCtxKey() {
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/shorten/batch", nil)
+	ctx := context.WithValue(context.Background(), middleware.BaseURLCtxKey, "...")
+	suite.handler.ServeHTTP(rr, req.WithContext(ctx))
+	suite.Equal(http.StatusInternalServerError, rr.Code)
+}
+
+func TestOriginalURLsSuite(t *testing.T) {
+	suite.Run(t, new(OriginalURLsSuite))
+}
 
 func ExampleGetOriginalURLsHandlerFunc() {
 	// Setup storage ...
 	t := new(testing.T)
 	ctrl := gomock.NewController(t)
-	s := database.NewMockStorage(ctrl)
+	s := storage.NewMockStorage(ctrl)
 	answer := []storage.Record{{URL: "https://practicum.yandex.ru/learn/", URLID: "rb1t0eupmn2_"}}
 	s.EXPECT().GetURLsByUser(gomock.Any(), uint32(1)).Times(1).Return(answer, nil)
 	// Setup request ...

@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/blokhinnv/shorty/internal/app/log"
+	"github.com/blokhinnv/shorty/internal/app/server/config"
+	"github.com/stretchr/testify/suite"
 )
 
 // BenchmarkPostgresStorage - бенчмарки для основных методов хранилища.
@@ -46,4 +48,122 @@ func BenchmarkPostgresStorage(b *testing.B) {
 			s.DeleteMany(ctx, 2, []string{"zxcvbn"})
 		}
 	})
+}
+
+type PostgresSuite struct {
+	suite.Suite
+	pgCfg *PostgresConfig
+}
+
+func (suite *PostgresSuite) SetupSuite() {
+	serverCfg := &config.ServerConfig{
+		PostgresDatabaseDSN:  "postgres://root:pwd@localhost:5432/root",
+		PostgresClearOnStart: true,
+	}
+	suite.pgCfg = GetPostgresConfig(serverCfg)
+}
+
+func (suite *PostgresSuite) TearDownSuite() {
+}
+
+func (suite *PostgresSuite) TestAddURL() {
+	ctx := context.Background()
+	s, _ := NewPostgresStorage(suite.pgCfg)
+	err := s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	suite.NoError(err)
+	s.Close(ctx)
+}
+
+func (suite *PostgresSuite) TestAddURLTwice() {
+	ctx := context.Background()
+	s, _ := NewPostgresStorage(suite.pgCfg)
+	err := s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	suite.NoError(err)
+
+	err = s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	suite.Error(err)
+	s.Close(ctx)
+}
+
+func (suite *PostgresSuite) TestGetURLByIDOk() {
+	ctx := context.Background()
+	s, _ := NewPostgresStorage(suite.pgCfg)
+	s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	rec, err := s.GetURLByID(ctx, "qwerty")
+	suite.NoError(err)
+	suite.Equal("http://yandex.ru", rec.URL)
+	s.Close(ctx)
+}
+
+func (suite *PostgresSuite) TestGetURLByIDEmpty() {
+	ctx := context.Background()
+	s, _ := NewPostgresStorage(suite.pgCfg)
+	_, err := s.GetURLByID(ctx, "qwerty")
+	suite.Error(err)
+	s.Close(ctx)
+}
+
+func (suite *PostgresSuite) TestGetURLsByUserNotFound() {
+	ctx := context.Background()
+	s, _ := NewPostgresStorage(suite.pgCfg)
+	_, err := s.GetURLsByUser(ctx, uint32(1))
+	suite.Error(err)
+	s.Close(ctx)
+}
+
+func (suite *PostgresSuite) TestGetURLsByUserFound() {
+	ctx := context.Background()
+	s, _ := NewPostgresStorage(suite.pgCfg)
+	s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	res, err := s.GetURLsByUser(ctx, uint32(1))
+	suite.NoError(err)
+	suite.Equal("http://yandex.ru", res[0].URL)
+	s.Close(ctx)
+}
+
+func (suite *PostgresSuite) TestBatchOK() {
+	ctx := context.Background()
+	s, _ := NewPostgresStorage(suite.pgCfg)
+
+	err := s.AddURLBatch(ctx, map[string]string{"http://yandex.ru": "qwerty"}, uint32(1))
+	suite.NoError(err)
+	s.Close(ctx)
+}
+
+func (suite *PostgresSuite) TestBatchErr() {
+	ctx := context.Background()
+	s, _ := NewPostgresStorage(suite.pgCfg)
+	s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	err := s.AddURLBatch(ctx, map[string]string{"http://yandex.ru": "qwerty"}, uint32(1))
+	suite.Error(err)
+	s.Close(ctx)
+}
+
+func (suite *PostgresSuite) TestDelete() {
+	ctx := context.Background()
+	s, _ := NewPostgresStorage(suite.pgCfg)
+	s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	err := s.DeleteMany(ctx, uint32(1), []string{"qwerty"})
+	suite.NoError(err)
+	s.Close(ctx)
+}
+
+func (suite *PostgresSuite) TestPing() {
+	ctx := context.Background()
+	s, _ := NewPostgresStorage(suite.pgCfg)
+	ping := s.Ping(ctx)
+	suite.Equal(true, ping)
+	s.Close(ctx)
+}
+
+func (suite *PostgresSuite) TestClear() {
+	ctx := context.Background()
+	s, _ := NewPostgresStorage(suite.pgCfg)
+	err := s.Clear(ctx)
+	suite.NoError(err)
+	s.Close(ctx)
+}
+
+func TestPostgresSuite(t *testing.T) {
+	suite.Run(t, new(PostgresSuite))
 }

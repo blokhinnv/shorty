@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	database "github.com/blokhinnv/shorty/internal/app/database/mock"
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
+	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/golang/mock/gomock"
 )
 
@@ -17,7 +17,7 @@ func Example() {
 	// Setup storage ...
 	t := new(testing.T)
 	ctrl := gomock.NewController(t)
-	s := database.NewMockStorage(ctrl)
+	s := storage.NewMockStorage(ctrl)
 	s.EXPECT().AddURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil)
 	// Setup request ...
 	handler := GetShortURLHandlerFunc(s)

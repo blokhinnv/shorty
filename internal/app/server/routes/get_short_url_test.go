@@ -10,17 +10,23 @@ import (
 	"testing"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
-	database "github.com/blokhinnv/shorty/internal/app/database/mock"
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/shorten"
+	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/go-resty/resty/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
+type ShortenTestSuite struct {
+	suite.Suite
+}
+
 // ShortenTestLogic - логика тестов для POST-запроса.
-func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
+func (suite *ShortenTestSuite) IntTestLogic(testCfg TestConfig) {
+	t := suite.T()
 	// Если стартануть сервер cmd/shortener/main,
 	// то будет использоваться его роутинг даже в тестах :о
 	s, err := db.NewDBStorage(testCfg.serverCfg)
@@ -38,7 +44,7 @@ func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
-	_, shortURL, err := shorten.GetShortURL(s, longURL, userID, testCfg.baseURL)
+	_, shortURL, err := shorten.GetShortURL(longURL, userID, testCfg.baseURL)
 	require.NoError(t, err)
 
 	type want struct {
@@ -135,26 +141,25 @@ func ShortenTestLogic(t *testing.T, testCfg TestConfig) {
 	}
 }
 
-// Test_Shorten_SQLite - запуск тестов для SQLite.
-func Test_Shorten_SQLite(t *testing.T) {
-	ShortenTestLogic(t, NewTestConfig("test_sqlite.env"))
+// IntTestLogic - запуск тестов для SQLite.
+func (suite *ShortenTestSuite) TestIntSQLite(t *testing.T) {
+	suite.IntTestLogic(NewTestConfig("test_sqlite.env"))
 }
 
-// Test_Shorten_Text - запуск тестов для текстового хранилища.
-func Test_Shorten_Text(t *testing.T) {
-	ShortenTestLogic(t, NewTestConfig("test_text.env"))
+// TestIntText - запуск тестов для текстового хранилища.
+func (suite *ShortenTestSuite) TestIntText(t *testing.T) {
+	suite.IntTestLogic(NewTestConfig("test_text.env"))
 }
 
-// Test_Shorten_Postgres - запуск тестов для Postgres.
-// func Test_Shorten_Postgres(t *testing.T) {
-// 	ShortenTestLogic(t, NewTestConfig("test_postgres.env"))
-// }
+func TestShortenTestSuite(t *testing.T) {
+	suite.Run(t, new(ShortenJSONTestSuite))
+}
 
 func ExampleGetShortURLHandlerFunc() {
 	// Setup storage ...
 	t := new(testing.T)
 	ctrl := gomock.NewController(t)
-	s := database.NewMockStorage(ctrl)
+	s := storage.NewMockStorage(ctrl)
 	s.EXPECT().AddURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil)
 	// Setup request ...
 	handler := GetShortURLHandlerFunc(s)

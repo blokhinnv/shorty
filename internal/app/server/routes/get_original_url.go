@@ -27,10 +27,6 @@ func GetOriginalURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 		}
 		// Забираем ID URL из адресной строки
 		urlID := r.URL.String()[1:]
-		if urlID == "" {
-			http.Error(w, "Incorrent GET request", http.StatusBadRequest)
-			return
-		}
 		rec, err := s.GetURLByID(ctx, urlID)
 		if err != nil {
 			if errors.Is(err, storage.ErrURLWasDeleted) {

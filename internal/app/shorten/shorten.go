@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/cespare/xxhash/v2"
 )
 
@@ -25,9 +24,6 @@ func isURL(s string) bool {
 // toShortenBase переводит число в 38-ую СС.
 func toShortenBase(urlUUID uint64) string {
 	var shortURL strings.Builder
-	if urlUUID == 0 {
-		return string(letters[0])
-	}
 	for urlUUID > 0 {
 		shortURL.WriteByte(letters[urlUUID%base])
 		urlUUID = urlUUID / base
@@ -37,7 +33,6 @@ func toShortenBase(urlUUID uint64) string {
 
 // GetShortURL возвращает укороченный URL.
 func GetShortURL(
-	s storage.Storage,
 	url string,
 	userID uint32,
 	baseURL string,

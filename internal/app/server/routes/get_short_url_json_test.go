@@ -4,25 +4,94 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
-	database "github.com/blokhinnv/shorty/internal/app/database/mock"
+	"github.com/blokhinnv/shorty/internal/app/log"
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/shorten"
+	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/go-resty/resty/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-// ShortenAPITestLogic - логика тестов для нового POST-запроса.
-func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
+type ShortenJSONTestSuite struct {
+	suite.Suite
+	ctrl    *gomock.Controller
+	db      *storage.MockStorage
+	handler http.HandlerFunc
+}
+
+func (suite *ShortenJSONTestSuite) SetupSuite() {
+	suite.ctrl = gomock.NewController(suite.T())
+	suite.db = storage.NewMockStorage(suite.ctrl)
+	suite.handler = GetShortURLAPIHandlerFunc(suite.db)
+}
+
+func (suite *ShortenJSONTestSuite) TearDownSuite() {
+	suite.ctrl.Finish()
+}
+
+func (suite *ShortenJSONTestSuite) makeRequest(
+	testName string,
+	body io.Reader,
+) *httptest.ResponseRecorder {
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/shorten", body)
+	req.Header.Set("Content-Type", "application/json")
+
+	suite.handler.ServeHTTP(rr, req)
+	log.Printf("[%v]: %v", testName, rr.Body.String())
+	return rr
+}
+
+func (suite *ShortenJSONTestSuite) TestUnreadable() {
+	rr := suite.makeRequest("TestUnreadable", errReader(0))
+	suite.Equal(http.StatusBadRequest, rr.Code)
+}
+
+func (suite *ShortenJSONTestSuite) TestErrorShortenURLLogic() {
+	body := []byte(fmt.Sprintf(`{"url":"%v"}`, "http://yandex.ru"))
+	rr := suite.makeRequest("TestErrorShortenURLLogic", bytes.NewBuffer(body))
+	suite.Equal(http.StatusInternalServerError, rr.Code)
+}
+
+func (suite *ShortenJSONTestSuite) TestNoUserIDCtxKey() {
+	body := []byte(fmt.Sprintf(`{"url":"%v"}`, "http://yandex.ru"))
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/shorten", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(context.Background(), middleware.BaseURLCtxKey, "...")
+	suite.handler.ServeHTTP(rr, req.WithContext(ctx))
+	suite.Equal(http.StatusInternalServerError, rr.Code)
+}
+
+func (suite *ShortenJSONTestSuite) TestAddError() {
+	body := []byte(fmt.Sprintf(`{"url":"%v"}`, "http://yandex.ru"))
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/shorten", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(context.Background(), middleware.BaseURLCtxKey, "...")
+	ctx = context.WithValue(ctx, middleware.UserIDCtxKey, uint32(1))
+	suite.db.EXPECT().
+		AddURL(gomock.Any(), "http://yandex.ru", gomock.Any(), uint32(1)).
+		Return(fmt.Errorf("error..."))
+	suite.handler.ServeHTTP(rr, req.WithContext(ctx))
+	suite.Equal(http.StatusBadRequest, rr.Code)
+}
+
+// IntTestLogic - логика тестов для нового POST-запроса.
+func (suite *ShortenJSONTestSuite) IntTestLogic(testCfg TestConfig) {
 	// Если стартануть сервер cmd/shortener/main,
 	// то будет использоваться его роутинг даже в тестах :о
+	t := suite.T()
 	s, err := db.NewDBStorage(testCfg.serverCfg)
 	if err != nil {
 		panic(err)
@@ -39,7 +108,7 @@ func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
 	// один URL, проверяем, что все прошло без ошибок
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
 	longURLEncoded := []byte(fmt.Sprintf(`{"url":"%v"}`, longURL))
-	_, shortURL, err := shorten.GetShortURL(s, longURL, userID, testCfg.baseURL)
+	_, shortURL, err := shorten.GetShortURL(longURL, userID, testCfg.baseURL)
 	require.NoError(t, err)
 
 	shortURLEncoded := []byte(fmt.Sprintf(`{"result":"%v"}`, shortURL))
@@ -126,6 +195,20 @@ func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
 			},
 			clearAfter: false,
 		},
+		{
+			// плохое тело
+			name:           "test_bad_body",
+			reqBody:        []byte(fmt.Sprintf(`{"url"%v"}`, badURL)),
+			reqContentType: "application/json",
+			want: want{
+				statusCode: http.StatusBadRequest,
+				result: []byte(
+					"Can't decode body: &{%!e(string=invalid character 'h' after object key) %!e(int64=7)}",
+				),
+				contentType: "text/plain; charset=utf-8",
+			},
+			clearAfter: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -155,29 +238,27 @@ func ShortenAPITestLogic(t *testing.T, testCfg TestConfig) {
 			}
 		})
 	}
-
 }
 
-// Test_ShortenAPI_SQLite - запуск тестов для SQLite.
-func Test_ShortenAPI_SQLite(t *testing.T) {
-	ShortenAPITestLogic(t, NewTestConfig("test_sqlite.env"))
+// TestIntSQLite - запуск тестов для SQLite.
+func (suite *ShortenJSONTestSuite) TestIntSQLite() {
+	suite.IntTestLogic(NewTestConfig("test_sqlite.env"))
 }
 
-// Test_ShortenAPI_Text - запуск тестов для текстового хранилища.
-func Test_ShortenAPI_Text(t *testing.T) {
-	ShortenAPITestLogic(t, NewTestConfig("test_text.env"))
+// TestIntText - запуск тестов для текстового хранилища.
+func (suite *ShortenJSONTestSuite) TestIntText() {
+	suite.IntTestLogic(NewTestConfig("test_text.env"))
 }
 
-// Test_ShortenAPI_Postgres - запуск тестов для Postgres.
-// func Test_ShortenAPI_Postgres(t *testing.T) {
-// 	ShortenAPITestLogic(t, NewTestConfig("test_postgres.env"))
-// }
+func TestShortenJSONTestSuite(t *testing.T) {
+	suite.Run(t, new(ShortenJSONTestSuite))
+}
 
 func ExampleGetShortURLAPIHandlerFunc() {
 	// Setup storage ...
 	t := new(testing.T)
 	ctrl := gomock.NewController(t)
-	s := database.NewMockStorage(ctrl)
+	s := storage.NewMockStorage(ctrl)
 	s.EXPECT().AddURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil)
 	// Setup request ...
 	handler := GetShortURLAPIHandlerFunc(s)

@@ -10,18 +10,36 @@ import (
 	"testing"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
-	database "github.com/blokhinnv/shorty/internal/app/database/mock"
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
+	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/go-resty/resty/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
-// ListOfURLsTestLogic - логика тестов для сокращения батчами.
-func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
+type BatchTestSuite struct {
+	suite.Suite
+	ctrl    *gomock.Controller
+	db      *storage.MockStorage
+	handler http.HandlerFunc
+}
+
+func (suite *BatchTestSuite) SetupSuite() {
+	suite.ctrl = gomock.NewController(suite.T())
+	suite.db = storage.NewMockStorage(suite.ctrl)
+	suite.handler = NewGetShortURLsBatchHandler(suite.db).Handler
+}
+
+func (suite *BatchTestSuite) TearDownSuite() {
+	suite.ctrl.Finish()
+}
+
+// IntTestLogic - логика тестов для сокращения батчами.
+func (suite *BatchTestSuite) IntTestLogic(testCfg TestConfig) {
 	// Если стартануть сервер cmd/shortener/main,
 	// то будет использоваться его роутинг даже в тестах :о
-
+	t := suite.T()
 	s, err := db.NewDBStorage(testCfg.serverCfg)
 	if err != nil {
 		panic(err)
@@ -125,26 +143,114 @@ func ShortenBatchTestLogic(t *testing.T, testCfg TestConfig) {
 	}
 }
 
-// Test_ShortenBatch_SQLite - запуск тестов для SQLite.
-func Test_ShortenBatch_SQLite(t *testing.T) {
-	ShortenBatchTestLogic(t, NewTestConfig("test_sqlite.env"))
+// TestIntSQLite - запуск тестов для SQLite.
+func (suite *BatchTestSuite) TestIntSQLite() {
+	suite.IntTestLogic(NewTestConfig("test_sqlite.env"))
 }
 
-// Test_ShortenBatch_Text - запуск тестов для текстового хранилища.
-func Test_ShortenBatch_Text(t *testing.T) {
-	ShortenBatchTestLogic(t, NewTestConfig("test_text.env"))
+// TestIntText - запуск тестов для текстового хранилища.
+func (suite *BatchTestSuite) TestIntText() {
+	suite.IntTestLogic(NewTestConfig("test_text.env"))
 }
 
-// Test_ShortenBatch_Postgres - запуск тестов для Postgres.
-// func Test_ShortenBatch_Postgres(t *testing.T) {
-// 	ShortenBatchTestLogic(t, NewTestConfig("test_postgres.env"))
-// }
+func (suite *BatchTestSuite) TestBadContentType() {
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/shorten/batch", nil)
+	suite.handler.ServeHTTP(rr, req)
+	suite.Equal(http.StatusBadRequest, rr.Code)
+}
+
+func (suite *BatchTestSuite) TestUnreadable() {
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/shorten/batch", errReader(0))
+	req.Header.Set("Content-Type", "application/json")
+	suite.handler.ServeHTTP(rr, req)
+	suite.Equal(http.StatusBadRequest, rr.Code)
+}
+
+func (suite *BatchTestSuite) TestNoBaseURLCtxKey() {
+	rr := httptest.NewRecorder()
+	body := []byte(`[{"correlation_id":"test1","original_url":"https://mail.ru/"}]`)
+	req, _ := http.NewRequest(http.MethodGet, "/shorten/batch", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	suite.handler.ServeHTTP(rr, req)
+	suite.Equal(http.StatusInternalServerError, rr.Code)
+}
+
+func (suite *BatchTestSuite) TestNoUserIDCtxKey() {
+	rr := httptest.NewRecorder()
+	body := []byte(`[{"correlation_id":"test1","original_url":"https://mail.ru/"}]`)
+	req, _ := http.NewRequest(http.MethodGet, "/shorten/batch", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(context.Background(), middleware.BaseURLCtxKey, "...")
+	suite.handler.ServeHTTP(rr, req.WithContext(ctx))
+	suite.Equal(http.StatusInternalServerError, rr.Code)
+}
+
+func (suite *BatchTestSuite) TestAddURLsErr() {
+	rr := httptest.NewRecorder()
+	body := []byte(`[{"correlation_id":"test1","original_url":"https://mail.ru/"}]`)
+	req, _ := http.NewRequest(http.MethodGet, "/shorten/batch", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(context.Background(), middleware.BaseURLCtxKey, "...")
+	ctx = context.WithValue(ctx, middleware.UserIDCtxKey, uint32(123))
+	suite.db.EXPECT().
+		AddURLBatch(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(fmt.Errorf("error"))
+	suite.handler.ServeHTTP(rr, req.WithContext(ctx))
+	suite.Equal(http.StatusBadRequest, rr.Code)
+}
+
+func (suite *BatchTestSuite) TestErrUniqueViolation() {
+	rr := httptest.NewRecorder()
+	body := []byte(`[{"correlation_id":"test1","original_url":"https://mail.ru/"}]`)
+	req, _ := http.NewRequest(http.MethodGet, "/shorten/batch", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	ctx := context.WithValue(context.Background(), middleware.BaseURLCtxKey, "...")
+	ctx = context.WithValue(ctx, middleware.UserIDCtxKey, uint32(123))
+	suite.db.EXPECT().
+		AddURLBatch(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(fmt.Errorf("%w", storage.ErrUniqueViolation))
+	suite.handler.ServeHTTP(rr, req.WithContext(ctx))
+	suite.Equal(http.StatusConflict, rr.Code)
+}
+
+func (suite *BatchTestSuite) TestEmptyBody() {
+	rr := httptest.NewRecorder()
+	body := []byte(`[]`)
+	req, _ := http.NewRequest(http.MethodGet, "/shorten/batch", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	suite.handler.ServeHTTP(rr, req)
+	suite.Equal(http.StatusBadRequest, rr.Code)
+}
+
+func (suite *BatchTestSuite) TestNotValid() {
+	rr := httptest.NewRecorder()
+	body := []byte(`[{"correlation_id":"test1","original_url":"h@ttp@s://m@ail.ru/"}]`)
+	req, _ := http.NewRequest(http.MethodGet, "/shorten/batch", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	suite.handler.ServeHTTP(rr, req)
+	suite.Equal(http.StatusBadRequest, rr.Code)
+}
+
+func (suite *BatchTestSuite) TestBadInput() {
+	rr := httptest.NewRecorder()
+	body := []byte(`[{"correlation_id":123,"original_url":456.5}]`)
+	req, _ := http.NewRequest(http.MethodGet, "/shorten/batch", bytes.NewBuffer(body))
+	req.Header.Set("Content-Type", "application/json")
+	suite.handler.ServeHTTP(rr, req)
+	suite.Equal(http.StatusBadRequest, rr.Code)
+}
+
+func TestBatchTestSuite(t *testing.T) {
+	suite.Run(t, new(BatchTestSuite))
+}
 
 func ExampleGetShortURLsBatchHandler_Handler() {
 	// Setup storage ...
 	t := new(testing.T)
 	ctrl := gomock.NewController(t)
-	s := database.NewMockStorage(ctrl)
+	s := storage.NewMockStorage(ctrl)
 	s.EXPECT().AddURLBatch(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil)
 	// Setup request ...
 	handler := NewGetShortURLsBatchHandler(s)

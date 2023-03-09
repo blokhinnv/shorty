@@ -8,17 +8,35 @@ import (
 	"testing"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
-	database "github.com/blokhinnv/shorty/internal/app/database/mock"
 	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/go-resty/resty/v2"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-// LengthenTestLogic - логика тестов для для получения оригинального URL.
-func LengthenTestLogic(t *testing.T, testCfg TestConfig) {
+type OriginalURLSuite struct {
+	suite.Suite
+	ctrl    *gomock.Controller
+	db      *storage.MockStorage
+	handler http.HandlerFunc
+}
+
+func (suite *OriginalURLSuite) SetupSuite() {
+	suite.ctrl = gomock.NewController(suite.T())
+	suite.db = storage.NewMockStorage(suite.ctrl)
+	suite.handler = GetOriginalURLHandlerFunc(suite.db)
+}
+
+func (suite *OriginalURLSuite) TearDownSuite() {
+	suite.ctrl.Finish()
+}
+
+// IntTestLogic - логика тестов для для получения оригинального URL.
+func (suite *OriginalURLSuite) IntTestLogic(testCfg TestConfig) {
+	t := suite.T()
 	s, err := db.NewDBStorage(testCfg.serverCfg)
 	if err != nil {
 		panic(err)
@@ -34,7 +52,7 @@ func LengthenTestLogic(t *testing.T, testCfg TestConfig) {
 	// Заготовка под тест: создаем хранилище, сокращаем
 	// один URL, проверяем, что все прошло без ошибок
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
-	shortURLID, shortURL, err := shorten.GetShortURL(s, longURL, userID, testCfg.baseURL)
+	shortURLID, shortURL, err := shorten.GetShortURL(longURL, userID, testCfg.baseURL)
 	require.NoError(t, err)
 	s.AddURL(context.Background(), longURL, shortURLID, userID)
 
@@ -95,26 +113,42 @@ func LengthenTestLogic(t *testing.T, testCfg TestConfig) {
 	}
 }
 
-// Test_Lengthen_SQLite - запуск тестов для SQLite.
-func Test_Lengthen_SQLite(t *testing.T) {
-	LengthenTestLogic(t, NewTestConfig("test_sqlite.env"))
+// TestIntSQLite - запуск тестов для SQLite.
+func (suite *OriginalURLSuite) TestIntSQLite() {
+	suite.IntTestLogic(NewTestConfig("test_sqlite.env"))
 }
 
-// Test_Lengthen_Text - запуск тестов для текстового хранилища.
-func Test_Lengthen_Text(t *testing.T) {
-	LengthenTestLogic(t, NewTestConfig("test_text.env"))
+// TestIntText - запуск тестов для текстового хранилища.
+func (suite *OriginalURLSuite) TestIntText() {
+	suite.IntTestLogic(NewTestConfig("test_text.env"))
 }
 
-// Test_Lengthen_Postgres - запуск тестов для Postgres.
-// func Test_Lengthen_Postgres(t *testing.T) {
-// 	LengthenTestLogic(t, NewTestConfig("test_postgres.env"))
-// }
+func (suite *OriginalURLSuite) TestEmptyURL() {
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/", nil)
+	suite.handler.ServeHTTP(rr, req)
+	suite.Equal(http.StatusBadRequest, rr.Code)
+}
+
+func (suite *OriginalURLSuite) TestDeleted() {
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/qwerty", nil)
+	suite.db.EXPECT().
+		GetURLByID(gomock.Any(), "qwerty").
+		Return(storage.Record{}, storage.ErrURLWasDeleted)
+	suite.handler.ServeHTTP(rr, req)
+	suite.Equal(http.StatusGone, rr.Code)
+}
+
+func TestOriginalURLSuite(t *testing.T) {
+	suite.Run(t, new(OriginalURLSuite))
+}
 
 func ExampleGetOriginalURLHandlerFunc() {
 	// Setup storage ...
 	t := new(testing.T)
 	ctrl := gomock.NewController(t)
-	s := database.NewMockStorage(ctrl)
+	s := storage.NewMockStorage(ctrl)
 	s.EXPECT().
 		GetURLByID(gomock.Any(), "rb1t0eupmn2_").
 		Times(1).

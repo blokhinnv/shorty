@@ -96,3 +96,10 @@ func NewServerWithPort(r chi.Router, host, port string) *httptest.Server {
 func IPToLocalhost(addr string) string {
 	return strings.Replace(addr, "127.0.0.1", "localhost", -1)
 }
+
+// errReader - тип для теста ошибки при io.ReadAll
+type errReader int
+
+func (errReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("test error")
+}

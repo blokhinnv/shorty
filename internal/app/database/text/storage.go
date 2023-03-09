@@ -26,6 +26,7 @@ type TextStorage struct {
 	buf       *bytes.Buffer
 	encoder   *json.Encoder
 	mu        sync.Mutex
+	quit      chan struct{}
 }
 
 // Настройки для выборки данных из текстового файла.
@@ -59,6 +60,7 @@ func NewTextStorage(conf *TextStorageConfig) (*TextStorage, error) {
 		toUpdate:  make(map[string]time.Time),
 		buf:       buf,
 		encoder:   json.NewEncoder(buf),
+		quit:      make(chan struct{}),
 	}
 	file, err := os.OpenFile(s.filePath, os.O_CREATE, 0777)
 	if err != nil {
@@ -80,7 +82,7 @@ func (s *TextStorage) UpdateStorage() {
 
 	file, err := os.OpenFile(s.filePath, os.O_RDONLY, 0777)
 	if err != nil {
-		panic(err)
+		log.Fatalf("unable to open file: %v", err)
 	}
 
 	// читаем с диска, выбрасываем старье
@@ -108,7 +110,7 @@ func (s *TextStorage) UpdateStorage() {
 	os.Remove(s.filePath)
 	file, err = os.OpenFile(s.filePath, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
-		panic(err)
+		log.Fatalf("unable to reopen file: %v", err)
 	}
 	defer file.Close()
 	encoder := json.NewEncoder(file)
@@ -126,8 +128,16 @@ func (s *TextStorage) UpdateStorage() {
 func (s *TextStorage) registerUpdateStorage() {
 	ticker := time.NewTicker(s.ttlOnDisk)
 	go func() {
-		for range ticker.C {
-			s.UpdateStorage()
+		// for range ticker.C {
+		// 	s.UpdateStorage()
+		// }
+		for {
+			select {
+			case <-ticker.C:
+				s.UpdateStorage()
+			case <-s.quit:
+				return
+			}
 		}
 	}()
 }
@@ -452,6 +462,7 @@ func (s *TextStorage) DeleteMany(ctx context.Context, userID uint32, urlIDs []st
 
 // Close закрывает соединение с хранилищем
 func (s *TextStorage) Close(ctx context.Context) {
+	s.quit <- struct{}{}
 }
 
 // Ping проверяет соединение с хранилищем.
@@ -467,9 +478,10 @@ func (s *TextStorage) Clear(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = os.Create(s.filePath)
+	f, err := os.OpenFile(s.filePath, os.O_CREATE, 0777)
 	if err != nil {
 		return err
 	}
+	f.Close()
 	return nil
 }

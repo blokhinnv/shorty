@@ -48,7 +48,6 @@ func (h *GetShortURLsBatchHandler) addURLs(
 	result := make([]ShortBatchResponseJSONItem, 0, len(data))
 	for _, item := range data {
 		shortURLID, shortenURL, err := shorten.GetShortURL(
-			h.s,
 			item.OriginalURL,
 			userID,
 			baseURL,

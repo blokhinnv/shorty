@@ -43,7 +43,7 @@ func shortenURLLogic(
 		return "", http.StatusInternalServerError, fmt.Errorf("no user id provided")
 	}
 
-	shortURLID, shortenURL, err := shorten.GetShortURL(s, longURL, userID, baseURL)
+	shortURLID, shortenURL, err := shorten.GetShortURL(longURL, userID, baseURL)
 	if err != nil {
 		return "", http.StatusBadRequest, err
 	}
