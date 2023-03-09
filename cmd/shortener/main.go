@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/blokhinnv/shorty/internal/app/log"
 	"github.com/joho/godotenv"
-	log "github.com/sirupsen/logrus"
 
 	s "github.com/blokhinnv/shorty/internal/app/server"
 	"github.com/blokhinnv/shorty/internal/app/server/config"

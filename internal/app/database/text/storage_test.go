@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/blokhinnv/shorty/internal/app/log"
 )
 
 // BenchmarkTextStorage - бенчмарки для основных методов хранилища.

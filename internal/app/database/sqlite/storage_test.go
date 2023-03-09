@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/blokhinnv/shorty/internal/app/log"
 )
 
 // BenchmarkSQLiteStorage - бенчмарки для основных методов хранилища.

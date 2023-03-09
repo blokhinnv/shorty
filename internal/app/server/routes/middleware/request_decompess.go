@@ -4,7 +4,7 @@ import (
 	"compress/gzip"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/blokhinnv/shorty/internal/app/log"
 )
 
 // RequestGZipDecompress - middleware для сжатия ответа.

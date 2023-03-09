@@ -7,9 +7,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/blokhinnv/shorty/internal/app/log"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/mattn/go-sqlite3"
-	log "github.com/sirupsen/logrus"
 )
 
 // SQL-запросы для реализации необходимой логики.

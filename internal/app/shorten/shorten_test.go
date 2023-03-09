@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/blokhinnv/shorty/internal/app/database"
+	"github.com/blokhinnv/shorty/internal/app/log"
 	"github.com/blokhinnv/shorty/internal/app/server/config"
-	log "github.com/sirupsen/logrus"
 )
 
 // BenchmarkToShortenBase - бенчмарк для toShortenBase.

@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/blokhinnv/shorty/internal/app/log"
 	"github.com/blokhinnv/shorty/internal/app/storage"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
 )
 

@@ -11,7 +11,7 @@ import (
 	"errors"
 	"net/http"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/blokhinnv/shorty/internal/app/log"
 )
 
 // Константы для работы middleware

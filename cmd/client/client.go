@@ -9,12 +9,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/blokhinnv/shorty/internal/app/log"
 
 	"github.com/blokhinnv/shorty/internal/app/server/config"
 	"github.com/go-resty/resty/v2"
