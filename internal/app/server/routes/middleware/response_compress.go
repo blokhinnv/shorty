@@ -62,12 +62,6 @@ func (gzw *gzipWriter) writeResponse() {
 
 // WriteHeader = переопределенный метод ResponseWriter: проверяет, нужно ли
 // кодировать данные на основе statusCode и contentType.
-//
-// я хочу добавить проверки на тип контента и размер
-// я вижу так: мне нужно вкрячиться куда-то после вызовов
-// (может быть несколько!) w.Write, которые будут в самих обработчиках
-// и при этом нужно сделать так, чтобы код самих обработчиков не надо было переписывать
-// лучший вариант, который я смог придумать - переопределить WriteHeader и Write...
 func (gzw *gzipWriter) WriteHeader(statusCode int) {
 	// запомним statusCode
 	gzw.statusCode = statusCode
@@ -102,10 +96,9 @@ func (gzw *gzipWriter) IsCompressableStatus() bool {
 }
 
 // Close корректно закрывает gzip.Writer.
-//
-// Writer хочется не забыть закрыть, но эти вызовы нужно отложить
-// до завершения ResponseGZipCompess, иначе не получится записать ответ
 func (gzw *gzipWriter) Close() {
+	// Writer хочется не забыть закрыть, но эти вызовы нужно отложить
+	// до завершения ResponseGZipCompess, иначе не получится записать ответ
 	w, ok := gzw.Writer.(*gzip.Writer)
 	if !ok {
 		return

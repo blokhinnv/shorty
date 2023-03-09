@@ -341,9 +341,9 @@ func (s *TextStorage) GetURLByID(ctx context.Context, urlID string) (storage.Rec
 }
 
 // GetURLsByUser получает URLs по ID пользователя.
-// Смотрим только в файле, т.к. его все равно придется
-// смотреть, чтобы быть уверенным, что нашли все.
 func (s *TextStorage) GetURLsByUser(ctx context.Context, userID uint32) ([]storage.Record, error) {
+	// Смотрим только в файле, т.к. его все равно придется
+	// смотреть, чтобы быть уверенным, что нашли все.
 	req := TextStorageRequest{UserID: userID, Size: 0, How: ByUserID}
 	rFile, err := s.FindInFile(req)
 	if err != nil {
