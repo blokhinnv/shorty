@@ -122,6 +122,8 @@ func (s *TextStorage) UpdateStorage() {
 	}
 	// update storage in memory
 	s.db = newDB
+	s.DeleteNotRequested()
+
 }
 
 // registerUpdateStorage starts a file update on a timer.
@@ -328,8 +330,8 @@ func (s *TextStorage) AddURL(ctx context.Context, url, urlID string, userID uint
 	if err != nil {
 		return err
 	}
-	// clear memory from old requests
-	s.DeleteNotRequested()
+	// // clear memory from old requests
+	// s.DeleteNotRequested()
 	return nil
 }
 
@@ -421,8 +423,8 @@ func (s *TextStorage) AddURLBatch(
 	s.UpdateFile(foundDeleted)
 	// add to file
 	s.AppendFromBuffer()
-	// clear memory from old requests
-	s.DeleteNotRequested()
+	// // clear memory from old requests
+	// s.DeleteNotRequested()
 	if violationErr != nil {
 		return violationErr
 	}
