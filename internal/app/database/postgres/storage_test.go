@@ -55,20 +55,16 @@ type PostgresSuite struct {
 	pgCfg *PostgresConfig
 }
 
-func (suite *PostgresSuite) SetupSuite() {
-	serverCfg := &config.ServerConfig{
-		PostgresDatabaseDSN:  "postgres://root:pwd@localhost:5432/root",
-		PostgresClearOnStart: true,
-	}
-	suite.pgCfg = GetPostgresConfig(serverCfg)
+var serverCfg = &config.ServerConfig{
+	PostgresDatabaseDSN:  "postgres://root:pwd@localhost:5432/root",
+	PostgresClearOnStart: true,
 }
 
-func (suite *PostgresSuite) TearDownSuite() {
-}
+var pgCfg = GetPostgresConfig(serverCfg)
 
 func (suite *PostgresSuite) TestAddURL() {
 	ctx := context.Background()
-	s, _ := NewPostgresStorage(suite.pgCfg)
+	s, _ := NewPostgresStorage(pgCfg)
 	err := s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
 	suite.NoError(err)
 	s.Close(ctx)
@@ -76,7 +72,7 @@ func (suite *PostgresSuite) TestAddURL() {
 
 func (suite *PostgresSuite) TestAddURLTwice() {
 	ctx := context.Background()
-	s, _ := NewPostgresStorage(suite.pgCfg)
+	s, _ := NewPostgresStorage(pgCfg)
 	err := s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
 	suite.NoError(err)
 
@@ -87,7 +83,7 @@ func (suite *PostgresSuite) TestAddURLTwice() {
 
 func (suite *PostgresSuite) TestGetURLByIDOk() {
 	ctx := context.Background()
-	s, _ := NewPostgresStorage(suite.pgCfg)
+	s, _ := NewPostgresStorage(pgCfg)
 	s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
 	rec, err := s.GetURLByID(ctx, "qwerty")
 	suite.NoError(err)
@@ -97,7 +93,7 @@ func (suite *PostgresSuite) TestGetURLByIDOk() {
 
 func (suite *PostgresSuite) TestGetURLByIDEmpty() {
 	ctx := context.Background()
-	s, _ := NewPostgresStorage(suite.pgCfg)
+	s, _ := NewPostgresStorage(pgCfg)
 	_, err := s.GetURLByID(ctx, "qwerty")
 	suite.Error(err)
 	s.Close(ctx)
@@ -105,7 +101,7 @@ func (suite *PostgresSuite) TestGetURLByIDEmpty() {
 
 func (suite *PostgresSuite) TestGetURLsByUserNotFound() {
 	ctx := context.Background()
-	s, _ := NewPostgresStorage(suite.pgCfg)
+	s, _ := NewPostgresStorage(pgCfg)
 	_, err := s.GetURLsByUser(ctx, uint32(1))
 	suite.Error(err)
 	s.Close(ctx)
@@ -113,7 +109,7 @@ func (suite *PostgresSuite) TestGetURLsByUserNotFound() {
 
 func (suite *PostgresSuite) TestGetURLsByUserFound() {
 	ctx := context.Background()
-	s, _ := NewPostgresStorage(suite.pgCfg)
+	s, _ := NewPostgresStorage(pgCfg)
 	s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
 	res, err := s.GetURLsByUser(ctx, uint32(1))
 	suite.NoError(err)
@@ -123,7 +119,7 @@ func (suite *PostgresSuite) TestGetURLsByUserFound() {
 
 func (suite *PostgresSuite) TestBatchOK() {
 	ctx := context.Background()
-	s, _ := NewPostgresStorage(suite.pgCfg)
+	s, _ := NewPostgresStorage(pgCfg)
 
 	err := s.AddURLBatch(ctx, map[string]string{"http://yandex.ru": "qwerty"}, uint32(1))
 	suite.NoError(err)
@@ -132,7 +128,7 @@ func (suite *PostgresSuite) TestBatchOK() {
 
 func (suite *PostgresSuite) TestBatchErr() {
 	ctx := context.Background()
-	s, _ := NewPostgresStorage(suite.pgCfg)
+	s, _ := NewPostgresStorage(pgCfg)
 	s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
 	err := s.AddURLBatch(ctx, map[string]string{"http://yandex.ru": "qwerty"}, uint32(1))
 	suite.Error(err)
@@ -141,7 +137,7 @@ func (suite *PostgresSuite) TestBatchErr() {
 
 func (suite *PostgresSuite) TestDelete() {
 	ctx := context.Background()
-	s, _ := NewPostgresStorage(suite.pgCfg)
+	s, _ := NewPostgresStorage(pgCfg)
 	s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
 	err := s.DeleteMany(ctx, uint32(1), []string{"qwerty"})
 	suite.NoError(err)
@@ -150,7 +146,7 @@ func (suite *PostgresSuite) TestDelete() {
 
 func (suite *PostgresSuite) TestPing() {
 	ctx := context.Background()
-	s, _ := NewPostgresStorage(suite.pgCfg)
+	s, _ := NewPostgresStorage(pgCfg)
 	ping := s.Ping(ctx)
 	suite.Equal(true, ping)
 	s.Close(ctx)
@@ -158,12 +154,17 @@ func (suite *PostgresSuite) TestPing() {
 
 func (suite *PostgresSuite) TestClear() {
 	ctx := context.Background()
-	s, _ := NewPostgresStorage(suite.pgCfg)
+	s, _ := NewPostgresStorage(pgCfg)
 	err := s.Clear(ctx)
 	suite.NoError(err)
 	s.Close(ctx)
 }
 
 func TestPostgresSuite(t *testing.T) {
-	suite.Run(t, new(PostgresSuite))
+	ps := new(PostgresSuite)
+	_, err := NewPostgresStorage(pgCfg)
+	if err != nil {
+		t.Skip("Skipping test, reason: connection to postgres cannot be established")
+	}
+	suite.Run(t, ps)
 }
