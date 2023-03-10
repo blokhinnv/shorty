@@ -21,7 +21,7 @@ func main() {
 	flag.StringVar(&targetLang, "t", "en", "target language")
 	flag.Parse()
 
-	filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(dir, func(path string, info os.FileInfo, e error) error {
 
 		if info.IsDir() || filepath.Ext(path) != ".go" {
 			return nil

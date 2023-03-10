@@ -4,7 +4,6 @@ import (
 	"math/rand"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/blokhinnv/shorty/internal/app/server/config"
 )
@@ -20,11 +19,8 @@ func BenchmarkToShortenBase(b *testing.B) {
 func BenchmarkGetShortURL(b *testing.B) {
 	b.Run("SQLite", func(b *testing.B) {
 		cfg := &config.ServerConfig{
-			ServerAddress:      "http://localhost:8080",
-			BaseURL:            "http://localhost:8080",
-			SecretKey:          "yandex-practicum",
-			SQLiteDBPath:       "db_test.sqlite3",
-			SQLiteClearOnStart: true,
+			BaseURL:      "http://localhost:8080",
+			SQLiteDBPath: "db_test.sqlite3",
 		}
 		b.ResetTimer()
 		for i := 0; i <= b.N; i++ {
@@ -36,11 +32,7 @@ func BenchmarkGetShortURL(b *testing.B) {
 
 	b.Run("Postgres", func(b *testing.B) {
 		cfg := &config.ServerConfig{
-			ServerAddress:        "http://localhost:8080",
-			BaseURL:              "http://localhost:8080",
-			SecretKey:            "yandex-practicum",
-			PostgresDatabaseDSN:  "postgres://root:pwd@localhost:5432/root",
-			PostgresClearOnStart: true,
+			BaseURL: "http://localhost:8080",
 		}
 		b.ResetTimer()
 		for i := 0; i <= b.N; i++ {
@@ -49,13 +41,8 @@ func BenchmarkGetShortURL(b *testing.B) {
 	})
 	b.Run("Text", func(b *testing.B) {
 		cfg := &config.ServerConfig{
-			ServerAddress:           "http://localhost:8080",
-			BaseURL:                 "http://localhost:8080",
-			SecretKey:               "yandex-practicum",
-			FileStoragePath:         "db_test.jsonl",
-			FileStorageClearOnStart: true,
-			FileStorageTTLOnDisk:    30 * time.Minute,
-			FileStorageTTLInMemory:  10 * time.Minute,
+			BaseURL:         "http://localhost:8080",
+			FileStoragePath: "db_test.jsonl",
 		}
 		b.ResetTimer()
 		for i := 0; i <= b.N; i++ {
