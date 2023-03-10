@@ -1,3 +1,4 @@
+// Пакет sqlite реализует хранилище на основе SQLite.
 package sqlite
 
 import "github.com/blokhinnv/shorty/internal/app/server/config"
