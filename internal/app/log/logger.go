@@ -10,11 +10,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// logFormatter - кастомный формат для логгера logrus.
+// logFormatter - custom format for the logrus logger.
 type logFormatter struct {
 }
 
-// Format реализует кастомный вывод сообщения.
+// Format implements custom message output.
 func (f *logFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	return []byte(
 		fmt.Sprintf(
@@ -25,7 +25,7 @@ func (f *logFormatter) Format(entry *logrus.Entry) ([]byte, error) {
 	), nil
 }
 
-// init настраивает поток и формат вывода для логгера.
+// init sets up the stream and output format for the logger.
 func init() {
 	logrus.SetOutput(os.Stdout)
 	defaultLog.SetOutput(os.Stdout)

@@ -1,4 +1,4 @@
-// Пакет config содержит описание конфига сервера.
+// Package config contains a description of the server config.
 package config
 
 import (
@@ -9,11 +9,11 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
-// ServerConfig - структура для хранения конфига сервера.
+// ServerConfig - structure for storing the server config.
 type ServerConfig struct {
 	ServerAddress           string        `env:"SERVER_ADDRESS"              envDefault:"http://localhost:8080" valid:"url"`
 	BaseURL                 string        `env:"BASE_URL"                    envDefault:"http://localhost:8080" valid:"url"`
-	SecretKey               string        `env:"SECRET_KEY"` // не буду указывать дефолтное значение для безопасности
+	SecretKey               string        `env:"SECRET_KEY"` // I will not specify a default value for security
 	PostgresDatabaseDSN     string        `env:"DATABASE_DSN"`
 	PostgresClearOnStart    bool          `env:"PG_CLEAR_ON_START"           envDefault:"false"`
 	SQLiteDBPath            string        `env:"SQLITE_DB_PATH"              envDefault:"db.sqlite3"`
@@ -24,10 +24,10 @@ type ServerConfig struct {
 	FileStorageTTLInMemory  time.Duration `env:"FILE_STORAGE_TTL_IN_MEMORY"  envDefault:"15m"`
 }
 
-// UpdateFromFlags обновляет конфиг сервера на основе флагов.
+// UpdateFromFlags Updates the server config based on flags.
 func (cfg *ServerConfig) UpdateFromFlags(flagCfg *FlagConfig) {
-	// вроде как приоритет должен быть у env,
-	// но тогда не пройду 7 тест...
+	// it seems like env should have priority,
+	// but then I won't pass the 7th test...
 	if flagCfg.ServerAddress != "" {
 		cfg.ServerAddress = flagCfg.ServerAddress
 	}
@@ -45,7 +45,7 @@ func (cfg *ServerConfig) UpdateFromFlags(flagCfg *FlagConfig) {
 	}
 }
 
-// NewServerConfig - конструктор конфига для сервера.
+// NewServerConfig - config constructor for the server.
 func NewServerConfig(flagCfg *FlagConfig) (*ServerConfig, error) {
 	cfg := ServerConfig{}
 	if err := env.Parse(&cfg); err != nil {

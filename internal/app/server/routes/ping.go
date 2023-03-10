@@ -6,7 +6,7 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
-// PingHandlerFunc - реализация эндпоинта /ping.
+// PingHandlerFunc - implementation of the /ping endpoint.
 func PingHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if !s.Ping(r.Context()) {

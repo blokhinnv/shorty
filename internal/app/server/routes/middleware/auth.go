@@ -1,4 +1,4 @@
-// Пакет middleware содержит реализации middleware для работы сервера
+// Package middleware contains middleware implementations for server operations.
 package middleware
 
 import (
@@ -14,24 +14,24 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/log"
 )
 
-// Константы для работы middleware
+// Constants for middleware operation
 const (
 	UserTokenCookieName = "UserToken"
 	UserIDCtxKey        = ContextStringKey("UserID")
 	nBytesForID         = 4
 )
 
-// Auth - структура для middleware авторизации.
+// Auth - structure for authorization middleware.
 type Auth struct {
 	secretKey []byte
 }
 
-// NewAuth - конструктор Auth middleware.
+// NewAuth - Auth middleware constructor.
 func NewAuth(key []byte) *Auth {
 	return &Auth{secretKey: key}
 }
 
-// generateUserID генерирует случайный ID пользователя.
+// generateUserID generates a random user ID.
 func (m *Auth) generateUserID(size int) ([]byte, error) {
 	b := make([]byte, size)
 	_, err := rand.Read(b)
@@ -41,7 +41,7 @@ func (m *Auth) generateUserID(size int) ([]byte, error) {
 	return b, nil
 }
 
-// setCookie устанавливает cookie на основе подписи.
+// setCookie sets a cookie based on the signature.
 func (m *Auth) setCookie(w http.ResponseWriter, r *http.Request) *http.Cookie {
 	userToken, err := m.generateToken()
 	if err != nil {
@@ -57,42 +57,42 @@ func (m *Auth) setCookie(w http.ResponseWriter, r *http.Request) *http.Cookie {
 	return &cookie
 }
 
-// generateHMAC генерирует подпись для данных.
+// generateHMAC generates a signature for the data.
 func (m *Auth) generateHMAC(data []byte) []byte {
 	h := hmac.New(sha256.New, m.secretKey)
 	h.Write(data)
 	return h.Sum(nil)
 }
 
-// generateToken генерирует токен.
+// generateToken generates a token.
 func (m *Auth) generateToken() (string, error) {
-	// 4 байта - ID пользователя (данные)
+	// 4 bytes - user ID (data)
 	id, err := m.generateUserID(nBytesForID)
 	if err != nil {
 		return "", err
 	}
-	// Подпись для ID пользователя
+	// Signature for user ID
 	sign := m.generateHMAC(id)
-	// Токен: 4 байта ID + подпись для ID
+	// Token: 4 bytes ID signature for ID
 	token := append(id, sign...)
 	return hex.EncodeToString(token), nil
 }
 
-// verifyCookie проверяет куки (токен).
+// verifyCookie verifies cookies (token).
 func (m *Auth) verifyCookie(w http.ResponseWriter, cookie *http.Cookie) bool {
 	data, err := hex.DecodeString(cookie.Value)
 	if err != nil {
 		http.Error(w, "server error", http.StatusInternalServerError)
 		return false
 	}
-	// первые 4 байта - ID пользователя
-	// Получаем для них подпись с секретным ключом сервера
+	// first 4 bytes - user ID
+	// Get a signature for them with the server's secret key
 	sign := m.generateHMAC(data[:nBytesForID])
-	// Сверяем то, что пришло в cookie, с настоящей подписью
+	// Check what came in the cookie against the real signature
 	return hmac.Equal(sign, data[nBytesForID:])
 }
 
-// extractID извлекает ID из куки.
+// extractID extracts the ID from the cookie.
 func (m *Auth) extractID(w http.ResponseWriter, cookie *http.Cookie) uint32 {
 	data, err := hex.DecodeString(cookie.Value)
 	if err != nil {
@@ -103,7 +103,7 @@ func (m *Auth) extractID(w http.ResponseWriter, cookie *http.Cookie) uint32 {
 	return id
 }
 
-// Handler возвращает обработчик middleware.
+// Handler returns a middleware handler.
 func (m *Auth) Handler(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cookie, err := r.Cookie(UserTokenCookieName)

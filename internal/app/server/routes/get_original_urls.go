@@ -11,13 +11,13 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
-// ShortenedURLSAnswer - структура для ответа в нужном виде.
+// ShortenedURLSAnswer - the structure for the response in the desired form.
 type ShortenedURLSAnswer struct {
 	URL   string `json:"original_url" valid:"url,required"`
 	URLID string `json:"short_url"    valid:"url,required"`
 }
 
-// prepareAnswer готовит ответ сервера в нужном виде.
+// prepareAnswer prepares the server response in the desired form.
 func prepareAnswer(records []storage.Record, baseURL string) []ShortenedURLSAnswer {
 	results := make([]ShortenedURLSAnswer, 0, len(records))
 	for _, r := range records {
@@ -29,8 +29,8 @@ func prepareAnswer(records []storage.Record, baseURL string) []ShortenedURLSAnsw
 	return results
 }
 
-// GetOriginalURLsHandlerFunc - реализация хендлера GET /api/user/urls.
-// Он сможет вернуть пользователю все когда-либо сокращённые им URL
+// GetOriginalURLsHandlerFunc - implementation of the GET handler /api/user/urls.
+// It will be able to return to the user all the URLs it has ever shortened
 func GetOriginalURLsHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)

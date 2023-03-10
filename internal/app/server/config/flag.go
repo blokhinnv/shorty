@@ -1,6 +1,6 @@
 package config
 
-// FlagConfig - структура для настроек, полученных из флагов.
+// FlagConfig - structure for settings obtained from flags.
 type FlagConfig struct {
 	ServerAddress   string
 	BaseURL         string

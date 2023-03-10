@@ -24,11 +24,11 @@ type ShortenTestSuite struct {
 	suite.Suite
 }
 
-// ShortenTestLogic - логика тестов для POST-запроса.
+// ShortenTestLogic - test logic for a POST request.
 func (suite *ShortenTestSuite) IntTestLogic(testCfg TestConfig) {
 	t := suite.T()
-	// Если стартануть сервер cmd/shortener/main,
-	// то будет использоваться его роутинг даже в тестах :о
+	// If you start the server cmd/shortener/main,
+	// then its routing will be used even in tests :o
 	s, err := db.NewDBStorage(testCfg.serverCfg)
 	if err != nil {
 		panic(err)
@@ -41,8 +41,8 @@ func (suite *ShortenTestSuite) IntTestLogic(testCfg TestConfig) {
 
 	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
 	defer ts.Close()
-	// Заготовка под тест: создаем хранилище, сокращаем
-	// один URL, проверяем, что все прошло без ошибок
+	// Preparation for the test: create storage, reduce
+	// one URL, check that everything passed without errors
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
 	_, shortURL, err := shorten.GetShortURL(longURL, userID, testCfg.baseURL)
 	require.NoError(t, err)
@@ -59,7 +59,7 @@ func (suite *ShortenTestSuite) IntTestLogic(testCfg TestConfig) {
 		clearAfter bool
 	}{
 		{
-			// тело запроса = url для сокращения
+			// request body = url to shorten
 			name:    "test_url_as_query",
 			longURL: longURL,
 			want: want{
@@ -70,9 +70,9 @@ func (suite *ShortenTestSuite) IntTestLogic(testCfg TestConfig) {
 			clearAfter: true,
 		},
 		{
-			// тело запроса имеет вид url=url для сокращения
-			// возникла путаница, т.к. в курсе предлагали
-			// использовать именно такой вариант для проекта
+			// request body is url=url for shorthand
+			// confusion arose because in the course offered
+			// use exactly this option for the project
 			name:    "test_url_in_query",
 			longURL: fmt.Sprintf("url=%v", longURL),
 			want: want{
@@ -83,7 +83,7 @@ func (suite *ShortenTestSuite) IntTestLogic(testCfg TestConfig) {
 			clearAfter: false,
 		},
 		{
-			// некорректный запрос (содержит ;)
+			// invalid request (contains ;)
 			name:    "test_url_bad_query",
 			longURL: fmt.Sprintf("url=%v;", longURL),
 			want: want{
@@ -94,7 +94,7 @@ func (suite *ShortenTestSuite) IntTestLogic(testCfg TestConfig) {
 			clearAfter: false,
 		},
 		{
-			// некорректный URL
+			// invalid URL
 			name:    "test_not_url",
 			longURL: "some\u1234NonUrlText",
 			want: want{
@@ -105,7 +105,7 @@ func (suite *ShortenTestSuite) IntTestLogic(testCfg TestConfig) {
 			clearAfter: false,
 		},
 		{
-			// повторный запрос
+			// repeated request
 			name:    "test_duplicated",
 			longURL: longURL,
 			want: want{
@@ -141,12 +141,12 @@ func (suite *ShortenTestSuite) IntTestLogic(testCfg TestConfig) {
 	}
 }
 
-// IntTestLogic - запуск тестов для SQLite.
+// IntTestLogic - run tests for SQLite.
 func (suite *ShortenTestSuite) TestIntSQLite(t *testing.T) {
 	suite.IntTestLogic(NewTestConfig("test_sqlite.env"))
 }
 
-// TestIntText - запуск тестов для текстового хранилища.
+// TestIntText - run tests for text storage.
 func (suite *ShortenTestSuite) TestIntText(t *testing.T) {
 	suite.IntTestLogic(NewTestConfig("test_text.env"))
 }
@@ -156,17 +156,17 @@ func TestShortenTestSuite(t *testing.T) {
 }
 
 func ExampleGetShortURLHandlerFunc() {
-	// Setup storage ...
+	// setup storage ...
 	t := new(testing.T)
 	ctrl := gomock.NewController(t)
 	s := storage.NewMockStorage(ctrl)
 	s.EXPECT().AddURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil)
-	// Setup request ...
+	// setup request ...
 	handler := GetShortURLHandlerFunc(s)
 	rr := httptest.NewRecorder()
 	body := bytes.NewBuffer([]byte("https://practicum.yandex.ru/learn/"))
 	req, _ := http.NewRequest(http.MethodPost, "/", body)
-	// Setup context ...
+	// setup context ...
 	ctx := req.Context()
 	ctx = context.WithValue(ctx, middleware.BaseURLCtxKey, "http://localhost:8080")
 	ctx = context.WithValue(ctx, middleware.UserIDCtxKey, uint32(1))
@@ -175,6 +175,6 @@ func ExampleGetShortURLHandlerFunc() {
 	handler(rr, req.WithContext(ctx))
 	fmt.Println(rr.Body.String())
 
-	// Output:
+	//Output:
 	// http://localhost:8080/rb1t0eupmn2_
 }

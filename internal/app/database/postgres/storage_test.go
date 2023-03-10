@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// BenchmarkPostgresStorage - бенчмарки для основных методов хранилища.
+// BenchmarkPostgresStorage - benchmarks for the main storage methods.
 func BenchmarkPostgresStorage(b *testing.B) {
 	cfg := &PostgresConfig{
 		DatabaseDSN:  "postgres://root:pwd@localhost:5432/root",

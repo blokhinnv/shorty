@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// addRecords - функция для заполнения хранилища примерами.
+// addRecords is a function to populate the repository with examples.
 func addRecords(
 	t *testing.T,
 	s storage.Storage,
@@ -55,7 +55,7 @@ func (suite *OriginalURLsSuite) TearDownSuite() {
 	suite.ctrl.Finish()
 }
 
-// IntTestLogic - логика тестов для GET-запроса.
+// IntTestLogic - test logic for a GET request.
 func (suite *OriginalURLsSuite) IntTestLogic(testCfg TestConfig) {
 	t := suite.T()
 	s, err := db.NewDBStorage(testCfg.serverCfg)
@@ -70,8 +70,8 @@ func (suite *OriginalURLsSuite) IntTestLogic(testCfg TestConfig) {
 	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
 	defer ts.Close()
 
-	// Заготовка под тест: создаем хранилище, сокращаем
-	// один URL, проверяем, что все прошло без ошибок
+	// Preparation for the test: create storage, reduce
+	// one URL, check that everything passed without errors
 	reqURL := "http://localhost:8080/api/user/urls"
 	var answer []ShortenedURLSAnswer
 	type want struct {
@@ -83,7 +83,7 @@ func (suite *OriginalURLsSuite) IntTestLogic(testCfg TestConfig) {
 		want want
 	}{
 		{
-			// нет данных
+			// no data
 			name: "test_no_content",
 			want: want{
 				statusCode:  http.StatusNoContent,
@@ -91,7 +91,7 @@ func (suite *OriginalURLsSuite) IntTestLogic(testCfg TestConfig) {
 			},
 		},
 		{
-			// есть данные
+			// there is data
 			name: "test_ok",
 			want: want{
 				statusCode:  http.StatusOK,
@@ -105,7 +105,7 @@ func (suite *OriginalURLsSuite) IntTestLogic(testCfg TestConfig) {
 		Name:  middleware.UserTokenCookieName,
 		Value: userToken,
 	})
-	// Первый тест с незаполненным хранилищем
+	// First test with empty storage
 	t.Run(tests[0].name, func(t *testing.T) {
 		res, err := client.R().Get(reqURL)
 		assert.NoError(t, err)
@@ -113,7 +113,7 @@ func (suite *OriginalURLsSuite) IntTestLogic(testCfg TestConfig) {
 		assert.Equal(t, tests[0].want.statusCode, res.StatusCode())
 		assert.Equal(t, tests[0].want.contentType, res.Header().Get("Content-Type"))
 	})
-	// Остальные - по заполненному
+	// The rest - according to the completed
 	answer = addRecords(t, s, userID, testCfg.baseURL)
 
 	t.Run(tests[1].name, func(t *testing.T) {
@@ -130,12 +130,12 @@ func (suite *OriginalURLsSuite) IntTestLogic(testCfg TestConfig) {
 	})
 }
 
-// TestIntSQLite - запуск тестов для SQLite.
+// TestIntSQLite - run tests for SQLite.
 func (suite *OriginalURLsSuite) TestIntSQLite() {
 	suite.IntTestLogic(NewTestConfig("test_sqlite.env"))
 }
 
-// TestIntText - запуск тестов для текстового хранилища.
+// TestIntText - run tests for text storage.
 func (suite *OriginalURLsSuite) TestIntText() {
 	suite.IntTestLogic(NewTestConfig("test_text.env"))
 }
@@ -160,17 +160,17 @@ func TestOriginalURLsSuite(t *testing.T) {
 }
 
 func ExampleGetOriginalURLsHandlerFunc() {
-	// Setup storage ...
+	// setup storage ...
 	t := new(testing.T)
 	ctrl := gomock.NewController(t)
 	s := storage.NewMockStorage(ctrl)
 	answer := []storage.Record{{URL: "https://practicum.yandex.ru/learn/", URLID: "rb1t0eupmn2_"}}
 	s.EXPECT().GetURLsByUser(gomock.Any(), uint32(1)).Times(1).Return(answer, nil)
-	// Setup request ...
+	// setup request ...
 	handler := GetOriginalURLsHandlerFunc(s)
 	rr := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/user/urls", nil)
-	// Setup context ...
+	// setup context ...
 	ctx := req.Context()
 	ctx = context.WithValue(ctx, middleware.BaseURLCtxKey, "http://localhost:8080")
 	ctx = context.WithValue(ctx, middleware.UserIDCtxKey, uint32(1))
@@ -179,6 +179,6 @@ func ExampleGetOriginalURLsHandlerFunc() {
 	handler(rr, req.WithContext(ctx))
 	fmt.Println(rr.Body.String())
 
-	// Output:
+	//Output:
 	// [{"original_url":"https://practicum.yandex.ru/learn/","short_url":"http://localhost:8080/rb1t0eupmn2_"}]
 }

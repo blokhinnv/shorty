@@ -11,21 +11,21 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
-// GetOriginalURLHandlerFunc - реализация эндпоинт GET /{id}.
-// Принимает в качестве URL-параметра идентификатор
-// сокращённого URL и возвращает ответ
-// с кодом 307 и оригинальным URL в HTTP-заголовке Location.
+// GetOriginalURLHandlerFunc - implementation of the GET /{id} endpoint.
+// Accepts an identifier as a URL parameter
+// shortened URL and returns the response
+// with code 307 and original URL in Location HTTP header.
 func GetOriginalURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 		defer cancel()
-		// Проверяем, что URL имеет нужный вид
+		// Check if the URL looks like it should
 		re := regexp.MustCompile(`^/\w+$`)
 		if !re.MatchString(r.URL.String()) {
 			http.Error(w, "Incorrent GET request", http.StatusBadRequest)
 			return
 		}
-		// Забираем ID URL из адресной строки
+		// Grab the URL ID from the address bar
 		urlID := r.URL.String()[1:]
 		rec, err := s.GetURLByID(ctx, urlID)
 		if err != nil {

@@ -35,10 +35,10 @@ func (suite *BatchTestSuite) TearDownSuite() {
 	suite.ctrl.Finish()
 }
 
-// IntTestLogic - логика тестов для сокращения батчами.
+// IntTestLogic - test logic to reduce by batches.
 func (suite *BatchTestSuite) IntTestLogic(testCfg TestConfig) {
-	// Если стартануть сервер cmd/shortener/main,
-	// то будет использоваться его роутинг даже в тестах :о
+	// If you start the server cmd/shortener/main,
+	// then its routing will be used even in tests :o
 	t := suite.T()
 	s, err := db.NewDBStorage(testCfg.serverCfg)
 	if err != nil {
@@ -64,7 +64,7 @@ func (suite *BatchTestSuite) IntTestLogic(testCfg TestConfig) {
 		clearAfter bool
 	}{
 		{
-			// ок
+			// OK
 			name: "test_ok",
 			body: `[{"correlation_id":"test1","original_url":"https://mail.ru/"},{"correlation_id":"test2","original_url":"https://dzen.ru/"}]`,
 
@@ -76,7 +76,7 @@ func (suite *BatchTestSuite) IntTestLogic(testCfg TestConfig) {
 			clearAfter: false,
 		},
 		{
-			// пустой запрос
+			// empty request
 			name: "test_no_content",
 			body: `[]`,
 			want: want{
@@ -87,7 +87,7 @@ func (suite *BatchTestSuite) IntTestLogic(testCfg TestConfig) {
 			clearAfter: false,
 		},
 		{
-			// плохой запрос
+			// bad request
 			name: "test_bad_content",
 			body: `[{"correlatio"n_id":"test1","short_url":"http://localhost:8080/f3o7hcrcrupz1"}]`,
 			want: want{
@@ -98,7 +98,7 @@ func (suite *BatchTestSuite) IntTestLogic(testCfg TestConfig) {
 			clearAfter: false,
 		},
 		{
-			// невалидный url
+			// invalid url
 			name: "test_not_valid",
 			body: `[{"correlation_id":"test1","original_url":"https://mail@@@.ru/"},{"correlation_id":"test2","original_url":"https://dzen.ru/"}]`,
 			want: want{
@@ -109,7 +109,7 @@ func (suite *BatchTestSuite) IntTestLogic(testCfg TestConfig) {
 			clearAfter: false,
 		},
 		{
-			// дубликат
+			// duplicate
 			name: "test_duplicated",
 			body: `[{"correlation_id":"test1","original_url":"https://mail.ru/"},{"correlation_id":"test2","original_url":"https://dzen.ru/"}]`,
 
@@ -143,12 +143,12 @@ func (suite *BatchTestSuite) IntTestLogic(testCfg TestConfig) {
 	}
 }
 
-// TestIntSQLite - запуск тестов для SQLite.
+// TestIntSQLite - run tests for SQLite.
 func (suite *BatchTestSuite) TestIntSQLite() {
 	suite.IntTestLogic(NewTestConfig("test_sqlite.env"))
 }
 
-// TestIntText - запуск тестов для текстового хранилища.
+// TestIntText - run tests for text storage.
 func (suite *BatchTestSuite) TestIntText() {
 	suite.IntTestLogic(NewTestConfig("test_text.env"))
 }
@@ -247,12 +247,12 @@ func TestBatchTestSuite(t *testing.T) {
 }
 
 func ExampleGetShortURLsBatchHandler_Handler() {
-	// Setup storage ...
+	// setup storage ...
 	t := new(testing.T)
 	ctrl := gomock.NewController(t)
 	s := storage.NewMockStorage(ctrl)
 	s.EXPECT().AddURLBatch(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil)
-	// Setup request ...
+	// setup request ...
 	handler := NewGetShortURLsBatchHandler(s)
 	rr := httptest.NewRecorder()
 	body := bytes.NewBuffer(
@@ -262,7 +262,7 @@ func ExampleGetShortURLsBatchHandler_Handler() {
 	)
 	req, _ := http.NewRequest(http.MethodPost, "/shorten/batch", body)
 	req.Header.Set("Content-Type", "application/json")
-	// Setup context ...
+	// setup context ...
 	ctx := req.Context()
 	ctx = context.WithValue(ctx, middleware.BaseURLCtxKey, "http://localhost:8080")
 	ctx = context.WithValue(ctx, middleware.UserIDCtxKey, uint32(1))
@@ -271,6 +271,6 @@ func ExampleGetShortURLsBatchHandler_Handler() {
 	handler.Handler(rr, req.WithContext(ctx))
 	fmt.Println(rr.Body.String())
 
-	// Output:
+	//Output:
 	// [{"correlation_id":"test1","short_url":"http://localhost:8080/f3o7hcrcrupz1"},{"correlation_id":"test2","short_url":"http://localhost:8080/k7os90zw0x74"}]
 }

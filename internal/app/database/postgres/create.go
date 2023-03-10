@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-// SQL-запрос для создания таблицы для Url.
+// SQL query to create a table for Url.
 const createSQL = `
 CREATE TABLE IF NOT EXISTS Url(
 	encoding_id SERIAL PRIMARY KEY,
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS Url(
 CREATE UNIQUE INDEX IF NOT EXISTS idx_url ON Url(url);
 `
 
-// InitDB инициализирует структуру БД для дальнейшей работы.
+// InitDB initializes the database structure for further work.
 func InitDB(conn *pgxpool.Pool, clearOnStart bool) error {
 	if _, err := conn.Exec(context.Background(), createSQL); err != nil {
 		return fmt.Errorf("can't create table Url: %v", err)

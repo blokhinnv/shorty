@@ -15,7 +15,7 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
-// Структуры для тела запроса и ответа.
+// Structures for the body of the request and response.
 type (
 	ShortBatchRequestJSONItem struct {
 		CorrelationID string `json:"correlation_id"`
@@ -27,17 +27,17 @@ type (
 	}
 )
 
-// GetShortURLsBatchHandler - Структура для реализации хэндлера.
+// GetShortURLsBatchHandler - Structure for handler implementation.
 type GetShortURLsBatchHandler struct {
 	s storage.Storage
 }
 
-// NewGetShortURLsBatchHandler - конструктор GetShortURLsBatchHandler.
+// NewGetShortURLsBatchHandler - GetShortURLsBatchHandler constructor.
 func NewGetShortURLsBatchHandler(s storage.Storage) *GetShortURLsBatchHandler {
 	return &GetShortURLsBatchHandler{s}
 }
 
-// addURLs подготавливает данные и вызывает добавление пакета.
+// addURLs prepares the data and causes the package to be added.
 func (h *GetShortURLsBatchHandler) addURLs(
 	ctx context.Context,
 	data []ShortBatchRequestJSONItem,
@@ -73,11 +73,11 @@ func (h *GetShortURLsBatchHandler) addURLs(
 	return result, status, nil
 }
 
-// Handler - реализация хэндлера.
+// Handler - handler implementation.
 func (h *GetShortURLsBatchHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
-	// Проверяем заголовки запроса
+	// Check request headers
 	if r.Header.Get("Content-Type") != "application/json" {
 		http.Error(
 			w,
@@ -86,13 +86,13 @@ func (h *GetShortURLsBatchHandler) Handler(w http.ResponseWriter, r *http.Reques
 		)
 		return
 	}
-	// Читаем тело запроса
+	// Read request body
 	bodyRaw, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Can't read body: %v", err.Error()), http.StatusBadRequest)
 		return
 	}
-	// Преобразуем тело запроса в слайс структур...
+	// Convert the request body into a slice of structures...
 	bodyDecoded := []ShortBatchRequestJSONItem{}
 	if err = json.Unmarshal(bodyRaw, &bodyDecoded); err != nil {
 		http.Error(w, fmt.Sprintf("Can't decode body: %e", err), http.StatusBadRequest)
@@ -102,7 +102,7 @@ func (h *GetShortURLsBatchHandler) Handler(w http.ResponseWriter, r *http.Reques
 		http.Error(w, fmt.Sprintf("nothing to add: %v", bodyRaw), http.StatusBadRequest)
 		return
 	}
-	// ... и проверяем валидность входных URL
+	// ... and check if the input URLs are valid
 	for _, item := range bodyDecoded {
 		result, err := govalidator.ValidateStruct(item)
 		if err != nil || !result {
@@ -114,7 +114,7 @@ func (h *GetShortURLsBatchHandler) Handler(w http.ResponseWriter, r *http.Reques
 			return
 		}
 	}
-	// Получаем baseURL и идентифицируем пользователя
+	// Get the baseURL and identify the user
 	baseURL, ok := ctx.Value(middleware.BaseURLCtxKey).(string)
 	if !ok {
 		http.Error(
@@ -124,8 +124,8 @@ func (h *GetShortURLsBatchHandler) Handler(w http.ResponseWriter, r *http.Reques
 		)
 		return
 	}
-	// В этом месте уже обязательно должно быть ясно
-	// для кого мы готовим ответ
+	// At this point it should already be clear
+	// for whom we are preparing a response
 	userID, ok := ctx.Value(middleware.UserIDCtxKey).(uint32)
 	if !ok {
 		http.Error(
@@ -139,13 +139,13 @@ func (h *GetShortURLsBatchHandler) Handler(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		http.Error(w, http.StatusText(status), status)
 	}
-	// Кодируем результат в виде JSON ...
+	// Encode the result as JSON ...
 	resultEncoded, err := json.Marshal(result)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	// .. и отправляем с нужными заголовками
+	// .. and send with the required headers
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
 	w.Write(resultEncoded)

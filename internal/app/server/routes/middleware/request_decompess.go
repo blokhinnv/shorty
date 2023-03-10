@@ -7,7 +7,7 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/log"
 )
 
-// RequestGZipDecompress - middleware для сжатия ответа.
+// RequestGZipDecompress - middleware for compressing the response.
 func RequestGZipDecompress(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Content-Encoding") == "gzip" {
@@ -18,7 +18,7 @@ func RequestGZipDecompress(next http.Handler) http.Handler {
 				return
 			}
 			defer gz.Close()
-			// не уверен, что это даст эффект. Как бы это проверить?
+			// not sure if this will work. How would you check this?
 			r.Body = gz
 		}
 		next.ServeHTTP(w, r)

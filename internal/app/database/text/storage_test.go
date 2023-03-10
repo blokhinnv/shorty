@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// BenchmarkTextStorage - бенчмарки для основных методов хранилища.
+// BenchmarkTextStorage - benchmarks for the main storage methods.
 func BenchmarkTextStorage(b *testing.B) {
 	cfg := &TextStorageConfig{
 		FileStoragePath: "db_test.jsonl",

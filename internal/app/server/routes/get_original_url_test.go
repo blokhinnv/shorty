@@ -34,7 +34,7 @@ func (suite *OriginalURLSuite) TearDownSuite() {
 	suite.ctrl.Finish()
 }
 
-// IntTestLogic - логика тестов для для получения оригинального URL.
+// IntTestLogic - test logic for getting the original URL.
 func (suite *OriginalURLSuite) IntTestLogic(testCfg TestConfig) {
 	t := suite.T()
 	s, err := db.NewDBStorage(testCfg.serverCfg)
@@ -49,8 +49,8 @@ func (suite *OriginalURLSuite) IntTestLogic(testCfg TestConfig) {
 	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
 	defer ts.Close()
 
-	// Заготовка под тест: создаем хранилище, сокращаем
-	// один URL, проверяем, что все прошло без ошибок
+	// Preparation for the test: create storage, reduce
+	// one URL, check that everything passed without errors
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
 	shortURLID, shortURL, err := shorten.GetShortURL(longURL, userID, testCfg.baseURL)
 	require.NoError(t, err)
@@ -67,7 +67,7 @@ func (suite *OriginalURLSuite) IntTestLogic(testCfg TestConfig) {
 		want     want
 	}{
 		{
-			// получаем оригинальный URL по сокращенному
+			// get the original URL from the shortened
 			name:     "test_ok",
 			shortURL: shortURL,
 			want: want{
@@ -77,7 +77,7 @@ func (suite *OriginalURLSuite) IntTestLogic(testCfg TestConfig) {
 			},
 		},
 		{
-			// некорректный ID сокращенного URL
+			// invalid URL shortener ID
 			name:     "test_bad_url",
 			shortURL: fmt.Sprintf("http://%v/[url]", testCfg.host),
 			want: want{
@@ -87,8 +87,8 @@ func (suite *OriginalURLSuite) IntTestLogic(testCfg TestConfig) {
 			},
 		},
 		{
-			// Пытаемся вернуть оригинальный URL, который
-			// никогда не видели
+			// Trying to return the original URL, which
+			// never seen
 			name:     "test_not_found_url",
 			shortURL: fmt.Sprintf("http://%v/qwerty", testCfg.host),
 			want: want{
@@ -113,12 +113,12 @@ func (suite *OriginalURLSuite) IntTestLogic(testCfg TestConfig) {
 	}
 }
 
-// TestIntSQLite - запуск тестов для SQLite.
+// TestIntSQLite - run tests for SQLite.
 func (suite *OriginalURLSuite) TestIntSQLite() {
 	suite.IntTestLogic(NewTestConfig("test_sqlite.env"))
 }
 
-// TestIntText - запуск тестов для текстового хранилища.
+// TestIntText - run tests for text storage.
 func (suite *OriginalURLSuite) TestIntText() {
 	suite.IntTestLogic(NewTestConfig("test_text.env"))
 }
@@ -145,7 +145,7 @@ func TestOriginalURLSuite(t *testing.T) {
 }
 
 func ExampleGetOriginalURLHandlerFunc() {
-	// Setup storage ...
+	// setup storage ...
 	t := new(testing.T)
 	ctrl := gomock.NewController(t)
 	s := storage.NewMockStorage(ctrl)
@@ -153,7 +153,7 @@ func ExampleGetOriginalURLHandlerFunc() {
 		GetURLByID(gomock.Any(), "rb1t0eupmn2_").
 		Times(1).
 		Return(storage.Record{URL: "https://practicum.yandex.ru/learn/"}, nil)
-	// Setup request ...
+	// setup request ...
 	handler := GetOriginalURLHandlerFunc(s)
 	rr := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/rb1t0eupmn2_", nil)
@@ -161,6 +161,6 @@ func ExampleGetOriginalURLHandlerFunc() {
 	handler(rr, req)
 	fmt.Println(rr.Body.String())
 
-	// Output:
+	//Output:
 	// Original URL was https://practicum.yandex.ru/learn/
 }

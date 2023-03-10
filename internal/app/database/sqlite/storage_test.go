@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// BenchmarkSQLiteStorage - бенчмарки для основных методов хранилища.
+// BenchmarkSQLiteStorage - benchmarks for the main storage methods.
 func BenchmarkSQLiteStorage(b *testing.B) {
 	cfg := &SQLiteConfig{
 		DBPath:       "db_test.sqlite3",

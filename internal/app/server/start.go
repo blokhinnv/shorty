@@ -1,4 +1,4 @@
-// Пакет server содержит логику создания, настройки и запуска сервера.
+// Package server contains the logic for creating, configuring, and starting the server.
 package server
 
 import (
@@ -12,7 +12,7 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/log"
 )
 
-// RunServer создает хранилище и запускает сервер.
+// RunServer creates the store and starts the server.
 func RunServer(cfg *config.ServerConfig) {
 	s, err := database.NewDBStorage(cfg)
 	if err != nil {

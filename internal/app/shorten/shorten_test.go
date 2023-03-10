@@ -9,14 +9,14 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/server/config"
 )
 
-// BenchmarkToShortenBase - бенчмарк для toShortenBase.
+// BenchmarkToShortenBase - benchmark for toShortenBase.
 func BenchmarkToShortenBase(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		toShortenBase(rand.Uint64())
 	}
 }
 
-// BenchmarkGetShortURL - бенчмарк для GetShortURL.
+// BenchmarkGetShortURL - benchmark for GetShortURL.
 func BenchmarkGetShortURL(b *testing.B) {
 	b.Run("SQLite", func(b *testing.B) {
 		cfg := &config.ServerConfig{

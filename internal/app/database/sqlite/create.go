@@ -7,7 +7,7 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// createSQL - SQL-запрос для создания таблицы для URL.
+// createSQL - SQL query to create a table for the URL.
 const createSQL = `
 CREATE TABLE IF NOT EXISTS Url(
 	encoding_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -21,9 +21,9 @@ CREATE TABLE IF NOT EXISTS Url(
 CREATE UNIQUE INDEX IF NOT EXISTS idx_url ON Url(url);
 `
 
-// InitDB инициализирует структуру БД для дальнейшей работы
+// InitDB initializes the database structure for further work
 func InitDB(dbFile string, clearOnStart bool) error {
-	// Создание таблицы в БД
+	// Create a table in the database
 	db, err := sql.Open("sqlite3", dbFile)
 	if err != nil {
 		return fmt.Errorf("can't access to DB %s: %v", dbFile, err)

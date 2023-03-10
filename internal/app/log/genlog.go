@@ -75,21 +75,21 @@ func main() {
 			levels = append(levels, templateLevel{Name: fmt.Sprintf("%vLevel", level)})
 		}
 	}
-	// генерируем код по шаблону
+	// generate code from template
 	var buf bytes.Buffer
 	err := tmpl.Execute(&buf, templateLogger{Package: "log", Funcs: funcs, Levels: levels})
 	if err != nil {
 		panic(err)
 	}
 
-	// форматируем код
+	// format the code
 	bufFmt, err := format.Source(buf.Bytes())
 	if err != nil {
 		panic(err)
 	}
 
-	// записываем сгенерированный код в файл
-	fname := os.Getenv("GOFILE") // имя файла, из которого вызван go:generate,
+	// write the generated code to a file
+	fname := os.Getenv("GOFILE") // name of the file from which go:generate is called,
 	basename := strings.TrimSuffix(fname, filepath.Ext(fname))
 	err = os.WriteFile(fmt.Sprintf("%s_funcs.go", basename), bufFmt, 0644)
 	if err != nil {

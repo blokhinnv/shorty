@@ -12,17 +12,17 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
-// GetShortURLHandlerFunc - реализация эндпоинта POST /.
-// Принимает в теле запроса строку URL
-// для сокращения и возвращает ответ с кодом 201 и
-// сокращённым URL в виде текстовой строки в теле.
+// GetShortURLHandlerFunc - implementation of the POST endpoint /.
+// Accepts a URL string in the request body
+// for shortening and returns a response with code 201 and
+// shortened URL as a text string in the body.
 func GetShortURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 		defer cancel()
 		query, _ := io.ReadAll(r.Body)
 		queryParsed, err := url.ParseQuery(string(query))
-		// Нужно учесть некорректные запросы и возвращать для них ответ с кодом 400.
+		// We need to take into account incorrect requests and return a response with a 400 code for them.
 		if err != nil {
 			http.Error(
 				w,
@@ -46,7 +46,7 @@ func GetShortURLHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.R
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		w.WriteHeader(status)
 		w.Write([]byte(shortenURL))
-		// я думал, что после вызова Write сразу отправляется ответ, но
-		// оказалось, что я был не прав...
+		// I thought that after calling Write, the response is immediately sent, but
+		// turned out I was wrong...
 	}
 }
