@@ -71,12 +71,14 @@ func ReflectUpdate(base any, ref any, refPriority bool) {
 	}
 }
 
+// UpdateFromFlags updates server config from flags (flags have priority).
 func (cfg *ServerConfig) UpdateFromFlags(flagCfg *FlagConfig) {
 	// it seems like env should have priority,
 	// but then I won't pass the 7th test...
 	ReflectUpdate(cfg, flagCfg, true)
 }
 
+// UpdateFromJSON updates server config from JSON (server cfg has priority).
 func (cfg *ServerConfig) UpdateFromJSON() error {
 	jsonFile, err := os.Open(cfg.JSONConfigPath)
 	if err != nil {
