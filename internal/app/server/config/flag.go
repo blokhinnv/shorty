@@ -7,5 +7,6 @@ type FlagConfig struct {
 	EnableHTTPS     bool
 	FileStoragePath string
 	SecretKey       string
-	DatabaseDSN     string
+	DatabaseDSN     string `cfgArg:"PostgresDatabaseDSN"`
+	JSONConfigPath  string
 }
