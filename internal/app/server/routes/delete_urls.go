@@ -8,26 +8,26 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/blokhinnv/shorty/internal/app/log"
 
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
-// DeleteURLsHandler - структура для реализации хендлера на удаление URL.
+// DeleteURLsHandler - a structure for implementing a URL delete handler.
 type DeleteURLsHandler struct {
 	s              storage.Storage
 	delURLsCh      chan Job
 	expireDuration time.Duration
 }
 
-// Job - задачи на удаления, которые обрабатываются горутинами.
+// Job - deletion tasks that are processed by goroutines.
 type Job struct {
 	URL    string
 	UserID uint32
 }
 
-// NewDeleteURLsHandler - конструктор DeleteURLsHandler.
+// NewDeleteURLsHandler - DeleteURLsHandler constructor.
 func NewDeleteURLsHandler(s storage.Storage, delURLsChBufSize int) *DeleteURLsHandler {
 	h := &DeleteURLsHandler{
 		s:              s,
@@ -38,7 +38,7 @@ func NewDeleteURLsHandler(s storage.Storage, delURLsChBufSize int) *DeleteURLsHa
 	return h
 }
 
-// DeleteURLs подготавливает батч для удаления и передает хранилищу.
+// DeleteURLs prepares the batch for deletion and passes it to the repository.
 func (h *DeleteURLsHandler) DeleteURLs(jobsToDelete []Job) {
 	if len(jobsToDelete) == 0 {
 		return
@@ -57,7 +57,7 @@ func (h *DeleteURLsHandler) DeleteURLs(jobsToDelete []Job) {
 	}
 }
 
-// Loop - основной цикл горутин для удаления URL.
+// Loop - the main goroutine loop for removing URLs.
 func (h *DeleteURLsHandler) Loop() {
 	go func() {
 		jobs := make([]Job, 0)
@@ -77,13 +77,13 @@ func (h *DeleteURLsHandler) Loop() {
 	}()
 }
 
-// Handler - реализация эндпоинта DELETE /api/user/urls.
-// Принимает список идентификаторов сокращённых URL для
-// удаления в формате: [ "a", "b", "c", "d", ...].
+// Handler - implementation of the DELETE /api/user/urls endpoint.
+// Accepts a list of short URL identifiers for
+// deletion in the format: [ "a", "b", "c", "d", ...].
 func (h *DeleteURLsHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
-	// Читаем тело запроса
+	// Read request body
 	bodyRaw, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Can't read body: %v", err.Error()), http.StatusBadRequest)

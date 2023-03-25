@@ -12,7 +12,7 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
-// Структуры для тела запроса и ответа.
+// Structures for the body of the request and response.
 type (
 	ShortJSONRequest struct {
 		URL string `json:"url" valid:"url,required"`
@@ -22,14 +22,14 @@ type (
 	}
 )
 
-// GetShortURLAPIHandlerFunc - овый эндпоинт POST /api/shorten.
-// Он принимает в теле запроса JSON-объект {"url":"<some_url>"} и возвращает
-// в ответ объект {"result":"<shorten_url>"}.
+// GetShortURLAPIHandlerFunc - new POST endpoint /api/shorten.
+// It takes a JSON object {"url":"<some_url>"} in the request body and returns
+// in response object {"result":"<shorten_url>"}.
 func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 		defer cancel()
-		// Проверяем заголовки запроса
+		// Check request headers
 		if r.Header.Get("Content-Type") != "application/json" {
 			http.Error(
 				w,
@@ -38,25 +38,25 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 			)
 			return
 		}
-		// Читаем тело запроса
+		// Read request body
 		bodyRaw, err := io.ReadAll(r.Body)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Can't read body: %v", err.Error()), http.StatusBadRequest)
 			return
 		}
-		// Преобразуем тело запроса и структуру...
+		// Transform the request body and structure...
 		bodyDecoded := ShortJSONRequest{}
 		if err = json.Unmarshal(bodyRaw, &bodyDecoded); err != nil {
 			http.Error(w, fmt.Sprintf("Can't decode body: %e", err), http.StatusBadRequest)
 			return
 		}
-		// ... и проверяем валидность
+		// ... and check validity
 		result, err := govalidator.ValidateStruct(bodyDecoded)
 		if err != nil || !result {
 			http.Error(w, fmt.Sprintf("Body is not valid: %v", err.Error()), http.StatusBadRequest)
 			return
 		}
-		// Сокращаем URL
+		// Shorten the URL
 		longURL := bodyDecoded.URL
 		shortenURL, status, err := shortenURLLogic(ctx, w, s, longURL)
 		if err != nil {
@@ -66,13 +66,13 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 				status,
 			)
 		}
-		// Кодируем результат в виде JSON ...
+		// Encode the result as JSON ...
 		shortenURLEncoded, err := json.Marshal(ShortJSONResponse{shortenURL})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		// .. и отправляем с нужными заголовками
+		// .. and send with the required headers
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(status)
 		w.Write(shortenURLEncoded)

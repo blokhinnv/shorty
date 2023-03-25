@@ -4,10 +4,12 @@ import (
 	"context"
 	"testing"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/blokhinnv/shorty/internal/app/log"
+	"github.com/blokhinnv/shorty/internal/app/server/config"
+	"github.com/stretchr/testify/suite"
 )
 
-// BenchmarkSQLiteStorage - бенчмарки для основных методов хранилища.
+// BenchmarkSQLiteStorage - benchmarks for the main storage methods.
 func BenchmarkSQLiteStorage(b *testing.B) {
 	cfg := &SQLiteConfig{
 		DBPath:       "db_test.sqlite3",
@@ -46,4 +48,122 @@ func BenchmarkSQLiteStorage(b *testing.B) {
 			s.DeleteMany(ctx, 2, []string{"zxcvbn"})
 		}
 	})
+}
+
+type SQLiteSuite struct {
+	suite.Suite
+	sqliteCfg *SQLiteConfig
+}
+
+func (suite *SQLiteSuite) SetupSuite() {
+	serverCfg := &config.ServerConfig{
+		SQLiteDBPath:       "test.sqlite3",
+		SQLiteClearOnStart: true,
+	}
+	suite.sqliteCfg = GetSQLiteConfig(serverCfg)
+}
+
+func (suite *SQLiteSuite) TearDownSuite() {
+}
+
+func (suite *SQLiteSuite) TestAddURL() {
+	ctx := context.Background()
+	s, _ := NewSQLiteStorage(suite.sqliteCfg)
+	err := s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	suite.NoError(err)
+	s.Close(ctx)
+}
+
+func (suite *SQLiteSuite) TestAddURLTwice() {
+	ctx := context.Background()
+	s, _ := NewSQLiteStorage(suite.sqliteCfg)
+	err := s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	suite.NoError(err)
+
+	err = s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	suite.Error(err)
+	s.Close(ctx)
+}
+
+func (suite *SQLiteSuite) TestGetURLByIDOk() {
+	ctx := context.Background()
+	s, _ := NewSQLiteStorage(suite.sqliteCfg)
+	s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	rec, err := s.GetURLByID(ctx, "qwerty")
+	suite.NoError(err)
+	suite.Equal("http://yandex.ru", rec.URL)
+	s.Close(ctx)
+}
+
+func (suite *SQLiteSuite) TestGetURLByIDEmpty() {
+	ctx := context.Background()
+	s, _ := NewSQLiteStorage(suite.sqliteCfg)
+	_, err := s.GetURLByID(ctx, "qwerty")
+	suite.Error(err)
+	s.Close(ctx)
+}
+
+func (suite *SQLiteSuite) TestGetURLsByUserNotFound() {
+	ctx := context.Background()
+	s, _ := NewSQLiteStorage(suite.sqliteCfg)
+	_, err := s.GetURLsByUser(ctx, uint32(1))
+	suite.Error(err)
+	s.Close(ctx)
+}
+
+func (suite *SQLiteSuite) TestGetURLsByUserFound() {
+	ctx := context.Background()
+	s, _ := NewSQLiteStorage(suite.sqliteCfg)
+	s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	res, err := s.GetURLsByUser(ctx, uint32(1))
+	suite.NoError(err)
+	suite.Equal("http://yandex.ru", res[0].URL)
+	s.Close(ctx)
+}
+
+func (suite *SQLiteSuite) TestBatchOK() {
+	ctx := context.Background()
+	s, _ := NewSQLiteStorage(suite.sqliteCfg)
+
+	err := s.AddURLBatch(ctx, map[string]string{"http://yandex.ru": "qwerty"}, uint32(1))
+	suite.NoError(err)
+	s.Close(ctx)
+}
+
+func (suite *SQLiteSuite) TestBatchErr() {
+	ctx := context.Background()
+	s, _ := NewSQLiteStorage(suite.sqliteCfg)
+	s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	err := s.AddURLBatch(ctx, map[string]string{"http://yandex.ru": "qwerty"}, uint32(1))
+	suite.Error(err)
+	s.Close(ctx)
+}
+
+func (suite *SQLiteSuite) TestDelete() {
+	ctx := context.Background()
+	s, _ := NewSQLiteStorage(suite.sqliteCfg)
+	s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	err := s.DeleteMany(ctx, uint32(1), []string{"qwerty"})
+	suite.NoError(err)
+	s.Close(ctx)
+}
+
+func (suite *SQLiteSuite) TestPing() {
+	ctx := context.Background()
+	s, _ := NewSQLiteStorage(suite.sqliteCfg)
+	ping := s.Ping(ctx)
+	suite.Equal(true, ping)
+	s.Close(ctx)
+}
+
+func (suite *SQLiteSuite) TestClear() {
+	ctx := context.Background()
+	s, _ := NewSQLiteStorage(suite.sqliteCfg)
+	err := s.Clear(ctx)
+	suite.NoError(err)
+	s.Close(ctx)
+}
+
+func TestSQLiteSuite(t *testing.T) {
+	suite.Run(t, new(SQLiteSuite))
 }

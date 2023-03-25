@@ -1,4 +1,4 @@
-// Пакет storage содержит описание интерфейса хранилища данных.
+// Package storage contains a description of the data storage interface.
 package storage
 
 import (
@@ -6,29 +6,29 @@ import (
 	"errors"
 )
 
-// Ошибки хранилища.
+// Storage errors.
 var (
 	ErrURLWasNotFound  = errors.New("requested URL was not found")
 	ErrUniqueViolation = errors.New("duplicate key value violates unique constraint")
 	ErrURLWasDeleted   = errors.New("requested url was deleted")
 )
 
-// Интерфейс для хранилища.
+// Storage - interface for storage.
 type Storage interface {
-	// AddURL добавляет URL в хранилище.
+	// AddURL adds a URL to the store.
 	AddURL(ctx context.Context, url, urlID string, userID uint32) error
-	// AddURLBatch добавляет пакет URLов в хранилище.
+	// AddURLBatch adds a batch of URLs to the store.
 	AddURLBatch(ctx context.Context, urlIDs map[string]string, userID uint32) error
-	// GetURLByID получает URL по ID.
+	// GetURLByID gets URL by ID.
 	GetURLByID(ctx context.Context, urlID string) (Record, error)
-	// GetURLsByUser получает URLs по ID пользователя.
+	// GetURLsByUser gets URLs by user ID.
 	GetURLsByUser(ctx context.Context, userID uint32) ([]Record, error)
-	// DeleteMany устанавливает отметку об удалении URL.
+	// DeleteMany flags the URL to be deleted.
 	DeleteMany(ctx context.Context, userID uint32, urlIDs []string) error
-	// Ping проверяет соединение с хранилищем.
+	// Ping checks the connection to the repository.
 	Ping(ctx context.Context) bool
-	// Clear очищает хранилище.
+	// Clear clears the storage.
 	Clear(ctx context.Context) error
-	// Close закрывает хранилище.
+	// Close closes the store.
 	Close(ctx context.Context)
 }

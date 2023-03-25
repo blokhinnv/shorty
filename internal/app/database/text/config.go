@@ -6,7 +6,7 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/server/config"
 )
 
-// TextStorageConfig - конфиг текстового хранилища.
+// TextStorageConfig - text storage config.
 type TextStorageConfig struct {
 	FileStoragePath string
 	ClearOnStart    bool
@@ -14,7 +14,7 @@ type TextStorageConfig struct {
 	TTLInMemory     time.Duration
 }
 
-// GetTextStorageConfig - конструктор конфига текстового хранилища на основе конфига сервера.
+// GetTextStorageConfig - text storage config constructor based on server config.
 func GetTextStorageConfig(cfg *config.ServerConfig) *TextStorageConfig {
 	return &TextStorageConfig{
 		FileStoragePath: cfg.FileStoragePath,

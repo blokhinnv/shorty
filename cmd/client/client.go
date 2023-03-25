@@ -1,5 +1,7 @@
 package main
 
+//lint:file-ignore U1000 игнорируем неиспользуемый код
+
 import (
 	"bufio"
 	"bytes"
@@ -7,12 +9,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/blokhinnv/shorty/internal/app/log"
 
 	"github.com/blokhinnv/shorty/internal/app/server/config"
 	"github.com/go-resty/resty/v2"
@@ -141,8 +144,7 @@ func main() {
 	// читаем строку из консоли
 	long, err := reader.ReadString('\n')
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
 	long = strings.TrimSpace(long)
 	// sendHTTPRequest(endpoint, long)

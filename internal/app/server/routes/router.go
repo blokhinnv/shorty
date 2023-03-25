@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-// NewRouter - конструктор нового маршрутизатора.
+// NewRouter - constructor for a new router.
 func NewRouter(storage storage.Storage, cfg *config.ServerConfig) chi.Router {
 	authentifier := m.NewAuth([]byte(cfg.SecretKey))
 	r := chi.NewRouter()

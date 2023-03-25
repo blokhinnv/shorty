@@ -1,4 +1,4 @@
-// Пакет routes содержит все обработчики для работы сервера
+// Package routes contains all the handlers for the server to work
 package routes
 
 import (
@@ -12,8 +12,8 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
-// shortenURLLogic - общая логика для сокращения URL. Используется в нескольких
-// хендлерах.
+// shortenURLLogic - general logic for URL shortening. Used in several
+// handlers.
 func shortenURLLogic(
 	ctx context.Context,
 	w http.ResponseWriter,
@@ -31,8 +31,8 @@ func shortenURLLogic(
 			http.StatusText(http.StatusInternalServerError),
 		)
 	}
-	// В этом месте уже обязательно должно быть ясно
-	// для кого мы готовим ответ
+	// At this point it should already be clear
+	// for whom we are preparing a response
 	userID, ok := ctx.Value(middleware.UserIDCtxKey).(uint32)
 	if !ok {
 		http.Error(
@@ -43,7 +43,7 @@ func shortenURLLogic(
 		return "", http.StatusInternalServerError, fmt.Errorf("no user id provided")
 	}
 
-	shortURLID, shortenURL, err := shorten.GetShortURL(s, longURL, userID, baseURL)
+	shortURLID, shortenURL, err := shorten.GetShortURL(longURL, userID, baseURL)
 	if err != nil {
 		return "", http.StatusBadRequest, err
 	}

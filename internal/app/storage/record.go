@@ -2,7 +2,7 @@ package storage
 
 import "time"
 
-// Record структура для хранения записи из хранилища.
+// Record is a structure for storing a record from the repository.
 type Record struct {
 	URL         string    `json:"url"          valid:"url,required"`
 	URLID       string    `json:"url_id"       valid:"url,required"`

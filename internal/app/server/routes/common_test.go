@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/blokhinnv/shorty/internal/app/log"
 
 	"github.com/blokhinnv/shorty/internal/app/server/config"
 	"github.com/go-chi/chi/v5"
@@ -16,13 +16,13 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Данные пользователя для тестирования.
+// User data for testing.
 const (
 	userID    uint32 = 2781908098
 	userToken string = "a5d08c82f3815eefe7f496d9652d8a041031e6a7f89d6bb2c90e1dfc335826e5a22255c8"
 )
 
-// Настройки для блокирования перенаправления.
+// Settings for blocking the redirect.
 var (
 	errRedirectBlocked = errors.New("HTTP redirect blocked")
 	NoRedirectPolicy   = resty.RedirectPolicyFunc(
@@ -32,7 +32,7 @@ var (
 	)
 )
 
-// Конфиг для запуска тестов.
+// Config for running tests.
 type TestConfig struct {
 	serverCfg *config.ServerConfig
 	host      string
@@ -40,7 +40,7 @@ type TestConfig struct {
 	baseURL   string
 }
 
-// unsetTestEnv сбрасывает все переменные окружения.
+// unsetTestEnv resets all environment variables.
 func unsetTestEnv() {
 	for _, envName := range []string{
 		"SQLITE_DB_PATH",
@@ -60,11 +60,11 @@ func unsetTestEnv() {
 
 }
 
-// NewTestConfig - конструктор конфига для запуска тестов.
+// NewTestConfig - config constructor for running tests.
 func NewTestConfig(envPath string) TestConfig {
 	unsetTestEnv()
 	godotenv.Load(envPath)
-	flagCfg := config.FlagConfig{} // будем считать, что в тестах флаги не используются
+	flagCfg := config.FlagConfig{} // we will assume that flags are not used in tests
 	serverCfg, err := config.NewServerConfig(&flagCfg)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -78,8 +78,8 @@ func NewTestConfig(envPath string) TestConfig {
 
 }
 
-// NewServerWithPort - конструктор нового сервера.
-// Нужен, чтобы убедиться, что сервер запустится на нужном нам порте
+// NewServerWithPort - constructor for a new server.
+// Needed to make sure that the server will start on the port we need
 func NewServerWithPort(r chi.Router, host, port string) *httptest.Server {
 	l, err := net.Listen("tcp", host)
 	if err != nil {
@@ -92,7 +92,14 @@ func NewServerWithPort(r chi.Router, host, port string) *httptest.Server {
 	return ts
 }
 
-// IPToLocalhost - вспомогательная функция, которая заменяет 127.0.0.1 на localhost.
+// IPToLocalhost is a helper function that replaces 127.0.0.1 with localhost.
 func IPToLocalhost(addr string) string {
 	return strings.Replace(addr, "127.0.0.1", "localhost", -1)
+}
+
+// errReader - type for error test on io.ReadAll
+type errReader int
+
+func (errReader) Read(p []byte) (n int, err error) {
+	return 0, errors.New("test error")
 }

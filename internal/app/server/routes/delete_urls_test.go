@@ -11,7 +11,6 @@ import (
 	"time"
 
 	db "github.com/blokhinnv/shorty/internal/app/database"
-	database "github.com/blokhinnv/shorty/internal/app/database/mock"
 	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/blokhinnv/shorty/internal/app/storage"
@@ -19,12 +18,33 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
-// DeleteTestLogic - логика тестов для хендлера с удалением URL.
-func DeleteTestLogic(t *testing.T, testCfg TestConfig) {
-	// Если стартануть сервер cmd/shortener/main,
-	// то будет использоваться его роутинг даже в тестах :о
+type DeleteURLSuite struct {
+	suite.Suite
+	ctrl        *gomock.Controller
+	db          *storage.MockStorage
+	handler     *DeleteURLsHandler
+	handlerFunc http.HandlerFunc
+}
+
+func (suite *DeleteURLSuite) SetupSuite() {
+	suite.ctrl = gomock.NewController(suite.T())
+	suite.db = storage.NewMockStorage(suite.ctrl)
+	suite.handler = NewDeleteURLsHandler(suite.db, 100)
+	suite.handlerFunc = suite.handler.Handler
+}
+
+func (suite *DeleteURLSuite) TearDownSuite() {
+	suite.ctrl.Finish()
+}
+
+// IntTestLogic - test logic for the handler with URL removal.
+func (suite *DeleteURLSuite) IntTestLogic(testCfg TestConfig) {
+	t := suite.T()
+	// If you start the server cmd/shortener/main,
+	// then its routing will be used even in tests :o
 	s, err := db.NewDBStorage(testCfg.serverCfg)
 	if err != nil {
 		panic(err)
@@ -37,10 +57,10 @@ func DeleteTestLogic(t *testing.T, testCfg TestConfig) {
 
 	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
 	defer ts.Close()
-	// Заготовка под тест: создаем хранилище, сокращаем
-	// один URL, проверяем, что все прошло без ошибок
+	// Preparation for the test: create storage, reduce
+	// one URL, check that everything passed without errors
 	longURL := "https://practicum.yandex.ru/learn/go-advanced/"
-	shortURLID, shortURL, err := shorten.GetShortURL(s, longURL, userID, testCfg.baseURL)
+	shortURLID, shortURL, err := shorten.GetShortURL(longURL, userID, testCfg.baseURL)
 	require.NoError(t, err)
 
 	client := resty.New()
@@ -65,7 +85,7 @@ func DeleteTestLogic(t *testing.T, testCfg TestConfig) {
 		method string
 	}{
 		{
-			// тело запроса = url для сокращения
+			// request body = url to shorten
 			name: "test_add_url",
 			body: strings.NewReader(longURL),
 			want: want{
@@ -78,7 +98,7 @@ func DeleteTestLogic(t *testing.T, testCfg TestConfig) {
 			method: http.MethodPost,
 		},
 		{
-			// пытаемся удалить добавленную строчку рандомным клиентом
+			// try to remove the added line by a random client
 			name: "test_remove_noname",
 			body: strings.NewReader(fmt.Sprintf(`["%v"]`, shortURLID)),
 			want: want{
@@ -91,7 +111,7 @@ func DeleteTestLogic(t *testing.T, testCfg TestConfig) {
 			method: http.MethodDelete,
 		},
 		{
-			// тело запроса = url для сокращения
+			// request body = url to shorten
 			name: "test_add_url_conflict",
 			body: strings.NewReader(longURL),
 			want: want{
@@ -104,7 +124,7 @@ func DeleteTestLogic(t *testing.T, testCfg TestConfig) {
 			method: http.MethodPost,
 		},
 		{
-			// пытаемся удалить добавленную строчку автором
+			// trying to remove the added line by the author
 			name: "test_remove_author",
 			body: strings.NewReader(fmt.Sprintf(`["%v"]`, shortURLID)),
 			want: want{
@@ -117,7 +137,7 @@ func DeleteTestLogic(t *testing.T, testCfg TestConfig) {
 			method: http.MethodDelete,
 		},
 		{
-			// тело запроса = url для сокращения
+			// request body = url to shorten
 			name: "test_add_url_after_del",
 			body: strings.NewReader(longURL),
 			want: want{
@@ -155,36 +175,65 @@ func DeleteTestLogic(t *testing.T, testCfg TestConfig) {
 	}
 }
 
-// Test_Delete_SQLite - запуск тестов для SQLite.
-func Test_Delete_SQLite(t *testing.T) {
-	DeleteTestLogic(t, NewTestConfig("test_sqlite.env"))
+// TestIntSQLite - run tests for SQLite.
+func (suite *DeleteURLSuite) TestIntSQLite() {
+	suite.IntTestLogic(NewTestConfig("test_sqlite.env"))
 }
 
-// Test_Delete_SQLite - запуск тестов для текстового хранилища.
-func Test_Delete_Text(t *testing.T) {
-	DeleteTestLogic(t, NewTestConfig("test_text.env"))
+// TestIntText - run tests for text storage.
+func (suite *DeleteURLSuite) TestIntText() {
+	suite.IntTestLogic(NewTestConfig("test_text.env"))
 }
 
-// Test_Delete_Postgres - запуск тестов для Postgres.
-// func Test_Delete_Postgres(t *testing.T) {
-// 	DeleteTestLogic(t, NewTestConfig("test_postgres.env"))
-// }
+func (suite *DeleteURLSuite) TestDeleteURLs() {
+	suite.db.EXPECT().
+		DeleteMany(gomock.Any(), uint32(1), []string{"qwe"}).
+		Return(fmt.Errorf("error..."))
+	suite.handler.DeleteURLs([]Job{{"qwe", uint32(1)}})
+}
+
+func (suite *DeleteURLSuite) TestUnreadable() {
+	rr := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodDelete, "/user/urls", errReader(0))
+	suite.handlerFunc.ServeHTTP(rr, req)
+	suite.Equal(http.StatusBadRequest, rr.Code)
+}
+
+func (suite *DeleteURLSuite) TestEmptyBody() {
+	rr := httptest.NewRecorder()
+	body := []byte(`[123.1, 1235.5]`)
+	req, _ := http.NewRequest(http.MethodDelete, "/user/urls", bytes.NewBuffer(body))
+	suite.handlerFunc.ServeHTTP(rr, req)
+	suite.Equal(http.StatusBadRequest, rr.Code)
+}
+
+func (suite *DeleteURLSuite) TestNoUserIDCtxKey() {
+	rr := httptest.NewRecorder()
+	body := []byte(`["qwerty"]`)
+	req, _ := http.NewRequest(http.MethodDelete, "/user/urls", bytes.NewBuffer(body))
+	suite.handlerFunc.ServeHTTP(rr, req)
+	suite.Equal(http.StatusInternalServerError, rr.Code)
+}
+
+func TestDeleteURLSuite(t *testing.T) {
+	suite.Run(t, new(DeleteURLSuite))
+}
 
 func ExampleDeleteURLsHandler_Handler() {
-	// Setup storage ...
+	// setup storage ...
 	t := new(testing.T)
 	ctrl := gomock.NewController(t)
-	s := database.NewMockStorage(ctrl)
+	s := storage.NewMockStorage(ctrl)
 	s.EXPECT().
 		GetURLByID(gomock.Any(), "rb1t0eupmn2_").
 		Times(1).
 		Return(storage.Record{URL: "https://practicum.yandex.ru/learn/"}, nil)
-	// Setup request ...
+	// setup request ...
 	handler := NewDeleteURLsHandler(s, 10)
 	rr := httptest.NewRecorder()
 	body := bytes.NewBuffer([]byte(`["rb1t0eupmn2_"]`))
 	req, _ := http.NewRequest(http.MethodDelete, "/user/urls", body)
-	// Setup context ...
+	// setup context ...
 	ctx := req.Context()
 	ctx = context.WithValue(ctx, middleware.BaseURLCtxKey, "http://localhost:8080")
 	ctx = context.WithValue(ctx, middleware.UserIDCtxKey, uint32(1))
@@ -194,6 +243,6 @@ func ExampleDeleteURLsHandler_Handler() {
 	res := rr.Result()
 	defer res.Body.Close()
 	fmt.Println(res.StatusCode)
-	// Output:
+	//Output:
 	// 202
 }
