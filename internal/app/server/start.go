@@ -4,6 +4,8 @@ package server
 import (
 	"context"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/blokhinnv/shorty/internal/app/database"
 	"github.com/blokhinnv/shorty/internal/app/server/config"
@@ -35,18 +37,44 @@ func prepareHTTPS(r chi.Router, serverAddress string) *http.Server {
 }
 
 // RunServer creates the store and starts the server.
-func RunServer(cfg *config.ServerConfig) {
+func RunServer(cfg *config.ServerConfig, ctx context.Context) {
 	s, err := database.NewDBStorage(cfg)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	defer s.Close(context.Background())
-	r := routes.NewRouter(s, cfg)
+	defer s.Close(ctx)
+	routerCloseCh := make(chan struct{}, 1)
+	r := routes.NewRouter(s, cfg, routerCloseCh)
 	log.Printf("Starting server with config %+v\n", cfg)
+
+	var server *http.Server
 	if cfg.EnableHTTPS {
-		server := prepareHTTPS(r, cfg.ServerAddress)
-		server.ListenAndServeTLS("", "")
+		server = prepareHTTPS(r, cfg.ServerAddress)
 	} else {
-		http.ListenAndServe(cfg.ServerAddress, r)
+		server = &http.Server{
+			Addr:    cfg.ServerAddress,
+			Handler: r,
+		}
 	}
+
+	go func() {
+		if cfg.EnableHTTPS {
+			server.ListenAndServeTLS("", "")
+		} else {
+			server.ListenAndServe()
+		}
+	}()
+	<-ctx.Done()
+	// signal to finish deleting goroutines
+	routerCloseCh <- struct{}{}
+	log.Println("Shutting down server gracefully...")
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		log.Errorf("shutdown error: %v\n", err)
+		os.Exit(1)
+	}
+	// ensure goroutines are finished
+	<-routerCloseCh
+	log.Println("Bye!")
 }

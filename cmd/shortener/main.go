@@ -7,9 +7,12 @@ package main
 // docker run --name redis-test-instance -p 6379:6379 -d redis
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/blokhinnv/shorty/internal/app/log"
 	"github.com/joho/godotenv"
@@ -85,5 +88,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	s.RunServer(serverCfg)
+	shutdownCtx, stop := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGTERM,
+		syscall.SIGINT,
+		syscall.SIGQUIT,
+	)
+	defer stop()
+	s.RunServer(serverCfg, shutdownCtx)
 }

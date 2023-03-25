@@ -48,7 +48,7 @@ func (suite *BatchTestSuite) IntTestLogic(testCfg TestConfig) {
 		s.Clear(context.Background())
 		s.Close(context.Background())
 	}()
-	r := NewRouter(s, testCfg.serverCfg)
+	r := NewRouter(s, testCfg.serverCfg, make(chan struct{}))
 	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
 	defer ts.Close()
 	reqURL := "http://localhost:8080/api/shorten/batch"

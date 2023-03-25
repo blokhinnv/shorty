@@ -19,6 +19,7 @@ type DeleteURLsHandler struct {
 	s              storage.Storage
 	delURLsCh      chan Job
 	expireDuration time.Duration
+	routerCloseCh  chan struct{}
 }
 
 // Job - deletion tasks that are processed by goroutines.
@@ -28,11 +29,16 @@ type Job struct {
 }
 
 // NewDeleteURLsHandler - DeleteURLsHandler constructor.
-func NewDeleteURLsHandler(s storage.Storage, delURLsChBufSize int) *DeleteURLsHandler {
+func NewDeleteURLsHandler(
+	s storage.Storage,
+	delURLsChBufSize int,
+	routerCloseCh chan struct{},
+) *DeleteURLsHandler {
 	h := &DeleteURLsHandler{
 		s:              s,
 		delURLsCh:      make(chan Job, delURLsChBufSize),
 		expireDuration: 100 * time.Millisecond,
+		routerCloseCh:  routerCloseCh,
 	}
 	h.Loop()
 	return h
@@ -62,6 +68,7 @@ func (h *DeleteURLsHandler) Loop() {
 	go func() {
 		jobs := make([]Job, 0)
 		ticker := time.NewTicker(h.expireDuration)
+	out:
 		for {
 			select {
 			case job, ok := <-h.delURLsCh:
@@ -72,8 +79,21 @@ func (h *DeleteURLsHandler) Loop() {
 			case <-ticker.C:
 				h.DeleteURLs(jobs)
 				jobs = make([]Job, 0)
+			case <-h.routerCloseCh:
+				close(h.delURLsCh)
+				break out
 			}
 		}
+		log.Info("Finishing deleting...")
+		for {
+			job, ok := <-h.delURLsCh
+			if !ok {
+				break
+			}
+			jobs = append(jobs, job)
+		}
+		h.DeleteURLs(jobs)
+		h.routerCloseCh <- struct{}{}
 	}()
 }
 

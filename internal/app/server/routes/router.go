@@ -9,7 +9,11 @@ import (
 )
 
 // NewRouter - constructor for a new router.
-func NewRouter(storage storage.Storage, cfg *config.ServerConfig) chi.Router {
+func NewRouter(
+	storage storage.Storage,
+	cfg *config.ServerConfig,
+	routerCloseCh chan struct{},
+) chi.Router {
 	authentifier := m.NewAuth([]byte(cfg.SecretKey))
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -24,7 +28,7 @@ func NewRouter(storage storage.Storage, cfg *config.ServerConfig) chi.Router {
 		r.Get("/{idURL}", GetOriginalURLHandlerFunc(storage))
 		r.Route("/api", func(r chi.Router) {
 			r.Get("/user/urls", GetOriginalURLsHandlerFunc(storage))
-			r.Delete("/user/urls", NewDeleteURLsHandler(storage, 100).Handler)
+			r.Delete("/user/urls", NewDeleteURLsHandler(storage, 100, routerCloseCh).Handler)
 			r.Post("/shorten", GetShortURLAPIHandlerFunc(storage))
 			r.Post("/shorten/batch", NewGetShortURLsBatchHandler(storage).Handler)
 		})
