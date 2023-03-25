@@ -4,6 +4,7 @@ package config
 type FlagConfig struct {
 	ServerAddress   string
 	BaseURL         string
+	EnableHTTPS     bool
 	FileStoragePath string
 	SecretKey       string
 	DatabaseDSN     string

@@ -37,6 +37,7 @@ func parseConfig(cfg *config.FlagConfig) {
 	)
 	flag.StringVar(&cfg.SecretKey, "k", "", "secret key to sign uid cookies")
 	flag.StringVar(&cfg.DatabaseDSN, "d", "", "postgres connect string")
+	flag.BoolVar(&cfg.EnableHTTPS, "s", false, "whether to enable HTTPS or not")
 	flag.Parse()
 }
 

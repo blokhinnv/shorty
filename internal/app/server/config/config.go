@@ -14,6 +14,7 @@ type ServerConfig struct {
 	ServerAddress           string        `env:"SERVER_ADDRESS"              envDefault:"http://localhost:8080" valid:"url"`
 	BaseURL                 string        `env:"BASE_URL"                    envDefault:"http://localhost:8080" valid:"url"`
 	SecretKey               string        `env:"SECRET_KEY"` // I will not specify a default value for security
+	EnableHTTPS             bool          `env:"ENABLE_HTTPS"                envDefault:"false"`
 	PostgresDatabaseDSN     string        `env:"DATABASE_DSN"`
 	PostgresClearOnStart    bool          `env:"PG_CLEAR_ON_START"           envDefault:"false"`
 	SQLiteDBPath            string        `env:"SQLITE_DB_PATH"              envDefault:"db.sqlite3"`
@@ -42,6 +43,9 @@ func (cfg *ServerConfig) UpdateFromFlags(flagCfg *FlagConfig) {
 	}
 	if flagCfg.DatabaseDSN != "" {
 		cfg.PostgresDatabaseDSN = flagCfg.DatabaseDSN
+	}
+	if flagCfg.EnableHTTPS {
+		cfg.EnableHTTPS = true
 	}
 }
 
