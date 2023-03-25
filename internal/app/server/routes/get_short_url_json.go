@@ -29,7 +29,6 @@ func GetShortURLAPIHandlerFunc(s storage.Storage) func(http.ResponseWriter, *htt
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 		defer cancel()
-		// Check request headers
 		if r.Header.Get("Content-Type") != "application/json" {
 			http.Error(
 				w,
