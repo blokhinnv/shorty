@@ -79,10 +79,10 @@ func (cfg *ServerConfig) UpdateFromFlags(flagCfg *FlagConfig) {
 
 func (cfg *ServerConfig) UpdateFromJSON() error {
 	jsonFile, err := os.Open(cfg.JSONConfigPath)
-	defer jsonFile.Close()
 	if err != nil {
 		return err
 	}
+	defer jsonFile.Close()
 	content, _ := io.ReadAll(jsonFile)
 	var jsonCfg ServerConfig
 	json.Unmarshal(content, &jsonCfg)
