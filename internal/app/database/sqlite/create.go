@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS Url(
 CREATE UNIQUE INDEX IF NOT EXISTS idx_url ON Url(url);
 `
 
-// InitDB initializes the database structure for further work
-func InitDB(dbFile string, clearOnStart bool) error {
+// initDB initializes the database structure for further work
+func initDB(dbFile string, clearOnStart bool) error {
 	// Create a table in the database
 	db, err := sql.Open("sqlite3", dbFile)
 	if err != nil {

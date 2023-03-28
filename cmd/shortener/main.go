@@ -95,5 +95,5 @@ func main() {
 		syscall.SIGQUIT,
 	)
 	defer stop()
-	s.RunServer(serverCfg, shutdownCtx)
+	s.RunServer(shutdownCtx, serverCfg)
 }

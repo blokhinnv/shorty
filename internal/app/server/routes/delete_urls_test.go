@@ -189,7 +189,7 @@ func (suite *DeleteURLSuite) TestDeleteURLs() {
 	suite.db.EXPECT().
 		DeleteMany(gomock.Any(), uint32(1), []string{"qwe"}).
 		Return(fmt.Errorf("error..."))
-	suite.handler.DeleteURLs([]Job{{"qwe", uint32(1)}})
+	suite.handler.deleteURLs([]Job{{"qwe", uint32(1)}})
 }
 
 func (suite *DeleteURLSuite) TestUnreadable() {

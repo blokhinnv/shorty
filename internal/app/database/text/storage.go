@@ -73,9 +73,9 @@ func NewTextStorage(conf *TextStorageConfig) (*TextStorage, error) {
 
 // -------- Logic for updating storage ----------
 
-// UpdateStorage updates the storage file: removes old URLs
+// updateStorage updates the storage file: removes old URLs
 // and update information about the last request
-func (s *TextStorage) UpdateStorage() {
+func (s *TextStorage) updateStorage() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	log.Infof("Updating disk storage...\n")
@@ -122,7 +122,7 @@ func (s *TextStorage) UpdateStorage() {
 	}
 	// update storage in memory
 	s.db = newDB
-	s.DeleteNotRequested()
+	s.deleteNotRequested()
 
 }
 
@@ -136,7 +136,7 @@ func (s *TextStorage) registerUpdateStorage() {
 		for {
 			select {
 			case <-ticker.C:
-				s.UpdateStorage()
+				s.updateStorage()
 			case <-s.quit:
 				return
 			}
@@ -144,8 +144,8 @@ func (s *TextStorage) registerUpdateStorage() {
 	}()
 }
 
-// DeleteNotRequested removes URLs from memory that were requested a long time ago.
-func (s *TextStorage) DeleteNotRequested() {
+// deleteNotRequested removes URLs from memory that were requested a long time ago.
+func (s *TextStorage) deleteNotRequested() {
 	filtered := make([]storage.Record, 0)
 	for _, rec := range s.db {
 		if time.Since(rec.RequestedAt) < s.ttlInMem {
@@ -157,8 +157,8 @@ func (s *TextStorage) DeleteNotRequested() {
 	s.db = filtered
 }
 
-// AppendFromBuffer updates the file with information from the buffer.
-func (s *TextStorage) AppendFromBuffer() error {
+// appendFromBuffer updates the file with information from the buffer.
+func (s *TextStorage) appendFromBuffer() error {
 	file, err := os.OpenFile(s.filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0777)
 	if err != nil {
 		return err
@@ -173,8 +173,8 @@ func (s *TextStorage) AppendFromBuffer() error {
 	return nil
 }
 
-// UpdateFile updates the file based on the entry map.
-func (s *TextStorage) UpdateFile(newRecords map[string]storage.Record) error {
+// updateFile updates the file based on the entry map.
+func (s *TextStorage) updateFile(newRecords map[string]storage.Record) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	// mark file as deleted
@@ -218,8 +218,8 @@ func (s *TextStorage) UpdateFile(newRecords map[string]storage.Record) error {
 	return nil
 }
 
-// FindInMem searches memory for a URL by urlID.
-func (s *TextStorage) FindInMem(request TextStorageRequest) ([]storage.Record, error) {
+// findInMem searches memory for a URL by urlID.
+func (s *TextStorage) findInMem(request TextStorageRequest) ([]storage.Record, error) {
 	results := make([]storage.Record, 0)
 
 	for _, rec := range s.db {
@@ -299,7 +299,7 @@ func (s *TextStorage) AddURL(ctx context.Context, url, urlID string, userID uint
 		}
 	}
 	// update the file
-	s.UpdateFile(foundDeleted)
+	s.updateFile(foundDeleted)
 	// if such an entry is found, return an error
 	if len(result)-len(foundDeleted) > 0 {
 		return fmt.Errorf(
@@ -326,7 +326,7 @@ func (s *TextStorage) AddURL(ctx context.Context, url, urlID string, userID uint
 	// add to memory
 	s.db = append(s.db, r)
 	// add to file
-	err = s.AppendFromBuffer()
+	err = s.appendFromBuffer()
 	if err != nil {
 		return err
 	}
@@ -338,7 +338,7 @@ func (s *TextStorage) AddURL(ctx context.Context, url, urlID string, userID uint
 // GetURLByID returns a URL by its ID (first looks in memory, then in a file).
 func (s *TextStorage) GetURLByID(ctx context.Context, urlID string) (storage.Record, error) {
 	req := TextStorageRequest{URLID: urlID, Size: 1, How: ByURLID}
-	r, err := s.FindInMem(req)
+	r, err := s.findInMem(req)
 	if errors.Is(err, storage.ErrURLWasNotFound) {
 		r, err = s.FindInFile(req)
 	}
@@ -420,9 +420,9 @@ func (s *TextStorage) AddURLBatch(
 			)
 		}
 	}
-	s.UpdateFile(foundDeleted)
+	s.updateFile(foundDeleted)
 	// add to file
-	s.AppendFromBuffer()
+	s.appendFromBuffer()
 	// // clear memory from old requests
 	// s.DeleteNotRequested()
 	if violationErr != nil {
@@ -455,7 +455,7 @@ func (s *TextStorage) DeleteMany(ctx context.Context, userID uint32, urlIDs []st
 		rec.IsDeleted = true
 		toDelete[rec.URL] = rec
 	}
-	err = s.UpdateFile(toDelete)
+	err = s.updateFile(toDelete)
 	if err != nil {
 		return err
 	}

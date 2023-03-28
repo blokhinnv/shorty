@@ -31,8 +31,8 @@ type ServerConfig struct {
 	FileStorageTTLInMemory  time.Duration `env:"FILE_STORAGE_TTL_IN_MEMORY"  envDefault:"15m"                               json:"file_storage_ttl_in_memory"`
 }
 
-// ReflectUpdate updates base's fields from ref.
-func ReflectUpdate(base any, ref any, refPriority bool) {
+// reflectUpdate updates base's fields from ref.
+func reflectUpdate(base any, ref any, refPriority bool) {
 	baseObjPtr := reflect.ValueOf(base)
 	if baseObjPtr.Kind() != reflect.Ptr {
 		log.Warn("base should be ptr")
@@ -71,15 +71,15 @@ func ReflectUpdate(base any, ref any, refPriority bool) {
 	}
 }
 
-// UpdateFromFlags updates server config from flags (flags have priority).
-func (cfg *ServerConfig) UpdateFromFlags(flagCfg *FlagConfig) {
+// updateFromFlags updates server config from flags (flags have priority).
+func (cfg *ServerConfig) updateFromFlags(flagCfg *FlagConfig) {
 	// it seems like env should have priority,
 	// but then I won't pass the 7th test...
-	ReflectUpdate(cfg, flagCfg, true)
+	reflectUpdate(cfg, flagCfg, true)
 }
 
-// UpdateFromJSON updates server config from JSON (server cfg has priority).
-func (cfg *ServerConfig) UpdateFromJSON() error {
+// updateFromJSON updates server config from JSON (server cfg has priority).
+func (cfg *ServerConfig) updateFromJSON() error {
 	jsonFile, err := os.Open(cfg.JSONConfigPath)
 	if err != nil {
 		return err
@@ -88,7 +88,7 @@ func (cfg *ServerConfig) UpdateFromJSON() error {
 	content, _ := io.ReadAll(jsonFile)
 	var jsonCfg ServerConfig
 	json.Unmarshal(content, &jsonCfg)
-	ReflectUpdate(cfg, &jsonCfg, false)
+	reflectUpdate(cfg, &jsonCfg, false)
 	return nil
 }
 
@@ -98,9 +98,9 @@ func NewServerConfig(flagCfg *FlagConfig) (*ServerConfig, error) {
 	if err := env.Parse(&cfg); err != nil {
 		return nil, err
 	}
-	cfg.UpdateFromFlags(flagCfg)
+	cfg.updateFromFlags(flagCfg)
 	if cfg.JSONConfigPath != "" {
-		err := cfg.UpdateFromJSON()
+		err := cfg.updateFromJSON()
 		if err != nil {
 			log.Warnf("can't parse JSON %v, skipping: %v", cfg.JSONConfigPath, err)
 		}

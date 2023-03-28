@@ -7,13 +7,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/blokhinnv/shorty/internal/app/database"
-	"github.com/blokhinnv/shorty/internal/app/server/config"
-	"github.com/blokhinnv/shorty/internal/app/server/routes"
 	"github.com/go-chi/chi/v5"
 	"golang.org/x/crypto/acme/autocert"
 
+	"github.com/blokhinnv/shorty/internal/app/database"
 	"github.com/blokhinnv/shorty/internal/app/log"
+	"github.com/blokhinnv/shorty/internal/app/server/config"
+	"github.com/blokhinnv/shorty/internal/app/server/routes"
 )
 
 // Creates a http.Server object ready to support HTTPS.
@@ -37,7 +37,7 @@ func prepareHTTPS(r chi.Router, serverAddress string) *http.Server {
 }
 
 // RunServer creates the store and starts the server.
-func RunServer(cfg *config.ServerConfig, ctx context.Context) {
+func RunServer(ctx context.Context, cfg *config.ServerConfig) {
 	s, err := database.NewDBStorage(cfg)
 	if err != nil {
 		log.Fatal(err.Error())
