@@ -29,7 +29,7 @@ type SQLiteStorage struct {
 
 // NewSQLiteStorage - A constructor for a new URL storage.
 func NewSQLiteStorage(conf *SQLiteConfig) (*SQLiteStorage, error) {
-	err := InitDB(conf.DBPath, conf.ClearOnStart)
+	err := initDB(conf.DBPath, conf.ClearOnStart)
 	if err != nil {
 		return nil, err
 	}

@@ -19,6 +19,7 @@ type DeleteURLsHandler struct {
 	s              storage.Storage
 	delURLsCh      chan Job
 	expireDuration time.Duration
+	routerCloseCh  chan struct{}
 }
 
 // Job - deletion tasks that are processed by goroutines.
@@ -28,18 +29,23 @@ type Job struct {
 }
 
 // NewDeleteURLsHandler - DeleteURLsHandler constructor.
-func NewDeleteURLsHandler(s storage.Storage, delURLsChBufSize int) *DeleteURLsHandler {
+func NewDeleteURLsHandler(
+	s storage.Storage,
+	delURLsChBufSize int,
+	routerCloseCh chan struct{},
+) *DeleteURLsHandler {
 	h := &DeleteURLsHandler{
 		s:              s,
 		delURLsCh:      make(chan Job, delURLsChBufSize),
 		expireDuration: 100 * time.Millisecond,
+		routerCloseCh:  routerCloseCh,
 	}
-	h.Loop()
+	h.loop()
 	return h
 }
 
-// DeleteURLs prepares the batch for deletion and passes it to the repository.
-func (h *DeleteURLsHandler) DeleteURLs(jobsToDelete []Job) {
+// deleteURLs prepares the batch for deletion and passes it to the repository.
+func (h *DeleteURLsHandler) deleteURLs(jobsToDelete []Job) {
 	if len(jobsToDelete) == 0 {
 		return
 	}
@@ -57,11 +63,12 @@ func (h *DeleteURLsHandler) DeleteURLs(jobsToDelete []Job) {
 	}
 }
 
-// Loop - the main goroutine loop for removing URLs.
-func (h *DeleteURLsHandler) Loop() {
+// loop - the main goroutine loop for removing URLs.
+func (h *DeleteURLsHandler) loop() {
 	go func() {
 		jobs := make([]Job, 0)
 		ticker := time.NewTicker(h.expireDuration)
+	out:
 		for {
 			select {
 			case job, ok := <-h.delURLsCh:
@@ -70,10 +77,23 @@ func (h *DeleteURLsHandler) Loop() {
 				}
 				jobs = append(jobs, job)
 			case <-ticker.C:
-				h.DeleteURLs(jobs)
+				h.deleteURLs(jobs)
 				jobs = make([]Job, 0)
+			case <-h.routerCloseCh:
+				close(h.delURLsCh)
+				break out
 			}
 		}
+		log.Info("Finishing deleting...")
+		for {
+			job, ok := <-h.delURLsCh
+			if !ok {
+				break
+			}
+			jobs = append(jobs, job)
+		}
+		h.deleteURLs(jobs)
+		h.routerCloseCh <- struct{}{}
 	}()
 }
 

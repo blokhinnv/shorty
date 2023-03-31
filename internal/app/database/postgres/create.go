@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS Url(
 CREATE UNIQUE INDEX IF NOT EXISTS idx_url ON Url(url);
 `
 
-// InitDB initializes the database structure for further work.
-func InitDB(conn *pgxpool.Pool, clearOnStart bool) error {
+// initDB initializes the database structure for further work.
+func initDB(conn *pgxpool.Pool, clearOnStart bool) error {
 	if _, err := conn.Exec(context.Background(), createSQL); err != nil {
 		return fmt.Errorf("can't create table Url: %v", err)
 	}

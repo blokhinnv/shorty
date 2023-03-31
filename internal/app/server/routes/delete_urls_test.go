@@ -32,7 +32,7 @@ type DeleteURLSuite struct {
 func (suite *DeleteURLSuite) SetupSuite() {
 	suite.ctrl = gomock.NewController(suite.T())
 	suite.db = storage.NewMockStorage(suite.ctrl)
-	suite.handler = NewDeleteURLsHandler(suite.db, 100)
+	suite.handler = NewDeleteURLsHandler(suite.db, 100, make(chan struct{}))
 	suite.handlerFunc = suite.handler.Handler
 }
 
@@ -53,7 +53,7 @@ func (suite *DeleteURLSuite) IntTestLogic(testCfg TestConfig) {
 		s.Clear(context.Background())
 		s.Close(context.Background())
 	}()
-	r := NewRouter(s, testCfg.serverCfg)
+	r := NewRouter(s, testCfg.serverCfg, make(chan struct{}))
 
 	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
 	defer ts.Close()
@@ -189,7 +189,7 @@ func (suite *DeleteURLSuite) TestDeleteURLs() {
 	suite.db.EXPECT().
 		DeleteMany(gomock.Any(), uint32(1), []string{"qwe"}).
 		Return(fmt.Errorf("error..."))
-	suite.handler.DeleteURLs([]Job{{"qwe", uint32(1)}})
+	suite.handler.deleteURLs([]Job{{"qwe", uint32(1)}})
 }
 
 func (suite *DeleteURLSuite) TestUnreadable() {
@@ -229,7 +229,7 @@ func ExampleDeleteURLsHandler_Handler() {
 		Times(1).
 		Return(storage.Record{URL: "https://practicum.yandex.ru/learn/"}, nil)
 	// setup request ...
-	handler := NewDeleteURLsHandler(s, 10)
+	handler := NewDeleteURLsHandler(s, 10, make(chan struct{}))
 	rr := httptest.NewRecorder()
 	body := bytes.NewBuffer([]byte(`["rb1t0eupmn2_"]`))
 	req, _ := http.NewRequest(http.MethodDelete, "/user/urls", body)

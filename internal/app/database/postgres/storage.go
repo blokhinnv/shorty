@@ -46,7 +46,7 @@ func NewPostgresStorage(conf *PostgresConfig) (*PostgresStorage, error) {
 		log.Fatalln("Unable to create connection pool:", err)
 	}
 
-	err = InitDB(conn, conf.ClearOnStart)
+	err = initDB(conn, conf.ClearOnStart)
 	if err != nil {
 		return nil, err
 	}

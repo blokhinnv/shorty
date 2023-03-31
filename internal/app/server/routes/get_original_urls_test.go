@@ -66,7 +66,7 @@ func (suite *OriginalURLsSuite) IntTestLogic(testCfg TestConfig) {
 		s.Clear(context.Background())
 		s.Close(context.Background())
 	}()
-	r := NewRouter(s, testCfg.serverCfg)
+	r := NewRouter(s, testCfg.serverCfg, make(chan struct{}))
 	ts := NewServerWithPort(r, testCfg.host, testCfg.port)
 	defer ts.Close()
 

@@ -7,9 +7,12 @@ package main
 // docker run --name redis-test-instance -p 6379:6379 -d redis
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/blokhinnv/shorty/internal/app/log"
 	"github.com/joho/godotenv"
@@ -25,8 +28,8 @@ var (
 	buildCommit  string
 )
 
-// parseConfig - парсит флаги в структуру config.FlagConfig
-func parseConfig(cfg *config.FlagConfig) {
+// parseFlags - парсит флаги в структуру config.FlagConfig
+func parseFlags(cfg *config.FlagConfig) {
 	flag.StringVar(&cfg.ServerAddress, "a", "", "server address")
 	flag.StringVar(&cfg.BaseURL, "b", "", "base url")
 	flag.StringVar(
@@ -37,6 +40,10 @@ func parseConfig(cfg *config.FlagConfig) {
 	)
 	flag.StringVar(&cfg.SecretKey, "k", "", "secret key to sign uid cookies")
 	flag.StringVar(&cfg.DatabaseDSN, "d", "", "postgres connect string")
+	flag.BoolVar(&cfg.EnableHTTPS, "s", false, "whether to enable HTTPS or not")
+
+	flag.StringVar(&cfg.JSONConfigPath, "c", "", "path to json config (shorthand)")
+	flag.StringVar(&cfg.JSONConfigPath, "config", "", "path to json config")
 	flag.Parse()
 }
 
@@ -76,10 +83,17 @@ func main() {
 	// раньше это была глобальная переменная для пакета
 
 	flagCfg := config.FlagConfig{}
-	parseConfig(&flagCfg)
+	parseFlags(&flagCfg)
 	serverCfg, err := config.NewServerConfig(&flagCfg)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	s.RunServer(serverCfg)
+	shutdownCtx, stop := signal.NotifyContext(
+		context.Background(),
+		syscall.SIGTERM,
+		syscall.SIGINT,
+		syscall.SIGQUIT,
+	)
+	defer stop()
+	s.RunServer(shutdownCtx, serverCfg)
 }

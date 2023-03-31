@@ -12,6 +12,7 @@ require (
 	github.com/gostaticanalysis/sqlrows v0.0.0-20200307153552-ea5697937269
 	github.com/joho/godotenv v1.4.0
 	github.com/mattn/go-sqlite3 v1.14.16
+	golang.org/x/crypto v0.1.0
 	golang.org/x/exp v0.0.0-20221212164502-fae10dda9338
 )
 
@@ -26,7 +27,6 @@ require (
 	github.com/robertkrimen/otto v0.2.1 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	go.uber.org/atomic v1.10.0 // indirect
-	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/exp/typeparams v0.0.0-20221208152030-732eee02a75a // indirect
 	golang.org/x/mod v0.9.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect

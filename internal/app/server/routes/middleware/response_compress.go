@@ -50,8 +50,8 @@ func (gzw *gzipWriter) writeResponse() {
 	// if you need to encode, then create a gzip.Writer,
 	// replace the default Writer and
 	// specify the Content-Encoding header
-	if gzw.IsCompressableStatus() && gzw.IsCompressableContent() &&
-		gzw.IsCompressableSize(gzw.buf.Bytes()) {
+	if gzw.isCompressableStatus() && gzw.isCompressableContent() &&
+		gzw.isCompressableSize(gzw.buf.Bytes()) {
 		gz, _ := gzip.NewWriterLevel(gzw.Writer, gzip.BestSpeed)
 		gzw.ResponseWriter.Header().Set("Content-Encoding", "gzip")
 		gzw.Writer = gz
@@ -73,8 +73,8 @@ func (gzw *gzipWriter) WriteHeader(statusCode int) {
 	// so we'll defer calling gzw.ResponseWriter.WriteHeader until then
 }
 
-// IsCompressableContent checks if it makes sense to compress data based on content type.
-func (gzw *gzipWriter) IsCompressableContent() bool {
+// isCompressableContent checks if it makes sense to compress data based on content type.
+func (gzw *gzipWriter) isCompressableContent() bool {
 	ct := gzw.ResponseWriter.Header().Get("Content-type")
 	for _, cct := range compressableContentTypes {
 		if strings.Contains(ct, cct) {
@@ -84,14 +84,14 @@ func (gzw *gzipWriter) IsCompressableContent() bool {
 	return false
 }
 
-// IsCompressableSize checks if it makes sense to compress the data based on its size.
-func (gzw *gzipWriter) IsCompressableSize(b []byte) bool {
+// isCompressableSize checks if it makes sense to compress the data based on its size.
+func (gzw *gzipWriter) isCompressableSize(b []byte) bool {
 	return binary.Size(b) >= minBytesToCompress
 }
 
-// IsCompressableStatus checks if it makes sense to compress data based on status
+// isCompressableStatus checks if it makes sense to compress data based on status
 // errors, redirects, etc. you just have to skim.
-func (gzw *gzipWriter) IsCompressableStatus() bool {
+func (gzw *gzipWriter) isCompressableStatus() bool {
 	return slices.Contains(statusesToCompress, gzw.statusCode)
 }
 
