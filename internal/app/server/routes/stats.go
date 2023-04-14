@@ -12,16 +12,19 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 
+// statsResponse is a struct to marshal response into.
 type statsResponse struct {
 	URLs  int `json:"urls"`
 	Users int `json:"users"`
 }
 
+// GetStats is a structure for handler implementation.
 type GetStats struct {
 	s             storage.Storage
 	trustedSubnet *net.IPNet // example: 192.168.0.1 in 192.168.0.0/24
 }
 
+// NewGetStats - constructor for GetStats.
 func NewGetStats(s storage.Storage, trustedSubnet string) *GetStats {
 	if trustedSubnet == "" {
 		return &GetStats{s: s, trustedSubnet: nil}
@@ -34,6 +37,7 @@ func NewGetStats(s storage.Storage, trustedSubnet string) *GetStats {
 	return &GetStats{s: s, trustedSubnet: ipv4Net}
 }
 
+// Handler - handler implementation.
 func (h *GetStats) Handler(w http.ResponseWriter, r *http.Request) {
 	if h.trustedSubnet == nil {
 		http.Error(
