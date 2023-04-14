@@ -221,3 +221,21 @@ func (s *PostgresStorage) Clear(ctx context.Context) error {
 	_, err := s.conn.Exec(ctx, clearSQL)
 	return err
 }
+
+// Returns DB stats.
+func (s *PostgresStorage) GetStats(ctx context.Context) (int, int, error) {
+	var urls int
+	err := s.conn.QueryRow(ctx, "SELECT COUNT(*) FROM Url").
+		Scan(&urls)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	var users int
+	err = s.conn.QueryRow(ctx, "SELECT COUNT(DISTINCT user_id) FROM Url").
+		Scan(&users)
+	if err != nil {
+		return 0, 0, err
+	}
+	return urls, users, nil
+}

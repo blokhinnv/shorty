@@ -21,6 +21,7 @@ type ServerConfig struct {
 	SecretKey               string        `env:"SECRET_KEY"                                                                 json:"secret_key"` // I will not specify a default value for security
 	EnableHTTPS             bool          `env:"ENABLE_HTTPS"                envDefault:"false"                             json:"enable_https"`
 	JSONConfigPath          string        `env:"CONFIG"                      envDefault:""`
+	TrustedSubnet           string        `env:"TRUSTED_SUBNET"`
 	PostgresDatabaseDSN     string        `env:"DATABASE_DSN"                                                               json:"postgres_database_dsn"`
 	PostgresClearOnStart    bool          `env:"PG_CLEAR_ON_START"           envDefault:"false"                             json:"postgres_clear_on_start"`
 	SQLiteDBPath            string        `env:"SQLITE_DB_PATH"              envDefault:"db.sqlite3"                        json:"sqlite_db_path"`

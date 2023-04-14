@@ -31,6 +31,7 @@ func NewRouter(
 			r.Delete("/user/urls", NewDeleteURLsHandler(storage, 100, routerCloseCh).Handler)
 			r.Post("/shorten", GetShortURLAPIHandlerFunc(storage))
 			r.Post("/shorten/batch", NewGetShortURLsBatchHandler(storage).Handler)
+			r.Get("/internal/stats", NewGetStats(storage, cfg.TrustedSubnet).Handler)
 		})
 	})
 	r.Get("/ping", PingHandlerFunc(storage))
