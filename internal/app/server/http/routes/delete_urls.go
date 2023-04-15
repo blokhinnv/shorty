@@ -10,7 +10,7 @@ import (
 
 	"github.com/blokhinnv/shorty/internal/app/log"
 
-	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
+	"github.com/blokhinnv/shorty/internal/app/server/http/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 

@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "shorty/internal/app/server/proto";
+
+message GetShortURLRequest {
+    string url = 1;
+}
+message GetShortURLResponse {
+    string url = 1;
+}
+
+message GetOriginalURLRequest {
+    string url_id = 1;
+}
+message GetOriginalURLResponse {
+    string url = 1;
+}
+
+message GetOriginalURLsRequest {};
+message GetOriginalURLsResponse {
+    string url = 1;
+    string url_id = 2;
+}
+
+message GetShortURLJSONRequest {
+    message Item {
+        string url = 1;
+    }
+    Item item = 1;
+}
+message GetShortURLJSONResponse {
+    message Item {
+        string result = 1;
+    }
+    Item item = 1;
+}
+
+message GetShortURLBatchRequest {
+    message Item {
+        string correlation_id = 1;
+        string original_url = 2;
+    }
+    repeated Item batch = 1;
+}
+
+message GetShortURLBatchResponse {
+    message Item {
+        string correlation_id = 1;
+        string short_url = 2;
+    }
+    repeated Item batch = 1;
+}
+
+message DeleteURLRequest{
+    string url = 1;
+}
+message DeleteURLResponse {};
+
+message GetStatsRequest {};
+message GetStatsResponse {
+    uint32 users = 1;
+    uint32 urls = 2;
+}
+
+message PingRequest {};
+message PingResponse {
+    bool pinged = 1;
+}
+
+
+service Shorty{
+    // URL на вход
+    rpc GetShortURL(GetShortURLRequest) returns (GetShortURLResponse);
+    // URL на вход
+    rpc GetOriginalURL(GetOriginalURLRequest) returns (GetOriginalURLResponse);
+    // Ничего на вход, URLs на выход
+    rpc GetOriginalURLs(GetOriginalURLsRequest) returns (stream GetOriginalURLsResponse);
+    // json на вход, json на выход
+    rpc GetShortURLJSON(GetShortURLJSONRequest) returns (GetShortURLJSONResponse);
+    // массив структур на вход, массив структур на выход
+    rpc GetShortURLBatch(GetShortURLBatchRequest) returns (GetShortURLBatchResponse);
+    // список url на удаление
+    rpc DeleteURL(stream DeleteURLRequest) returns (DeleteURLResponse);
+    // технические
+    rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+    rpc Ping(PingRequest) returns (PingResponse);
+}

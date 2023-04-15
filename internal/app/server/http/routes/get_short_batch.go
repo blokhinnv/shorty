@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
+	"github.com/blokhinnv/shorty/internal/app/server/http/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/shorten"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )

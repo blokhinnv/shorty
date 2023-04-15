@@ -1,5 +1,5 @@
-// Package server contains the logic for creating, configuring, and starting the server.
-package server
+// Package http contains all the logic for HTTP server.
+package http
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/database"
 	"github.com/blokhinnv/shorty/internal/app/log"
 	"github.com/blokhinnv/shorty/internal/app/server/config"
-	"github.com/blokhinnv/shorty/internal/app/server/routes"
+	"github.com/blokhinnv/shorty/internal/app/server/http/routes"
 )
 
 // Creates a http.Server object ready to support HTTPS.
@@ -36,8 +36,8 @@ func prepareHTTPS(r chi.Router, serverAddress string) *http.Server {
 	return server
 }
 
-// RunServer creates the store and starts the server.
-func RunServer(ctx context.Context, cfg *config.ServerConfig) {
+// RunHTTPServer creates the store and starts the server.
+func RunHTTPServer(ctx context.Context, cfg *config.ServerConfig) {
 	s, err := database.NewDBStorage(cfg)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -45,7 +45,7 @@ func RunServer(ctx context.Context, cfg *config.ServerConfig) {
 	defer s.Close(ctx)
 	routerCloseCh := make(chan struct{}, 1)
 	r := routes.NewRouter(s, cfg, routerCloseCh)
-	log.Printf("Starting server with config %+v\n", cfg)
+	log.Printf("Starting http server with config %+v\n", cfg)
 
 	var server *http.Server
 	if cfg.EnableHTTPS {
