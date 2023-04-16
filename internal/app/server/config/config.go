@@ -54,6 +54,9 @@ func reflectUpdate(base any, ref any, refPriority bool) {
 		fTag := refObjType.Field(i).Tag
 		tagValue, ok := fTag.Lookup("cfgArg")
 		if ok {
+			if tagValue == "-" {
+				continue
+			}
 			fName = tagValue
 		}
 		baseField := baseObj.FieldByName(fName)

@@ -10,5 +10,5 @@ type FlagConfig struct {
 	DatabaseDSN     string `cfgArg:"PostgresDatabaseDSN"`
 	JSONConfigPath  string
 	TrustedSubnet   string
-	StartGRPC       bool
+	StartGRPC       bool `cfgArg:"-"`
 }
