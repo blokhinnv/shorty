@@ -36,6 +36,7 @@ type ShortyServer struct {
 	srvCloseCh     chan struct{}
 }
 
+// NewShortyServer is a constructor for ShortyServer.
 func NewShortyServer(
 	s storage.Storage,
 	baseURL string,
