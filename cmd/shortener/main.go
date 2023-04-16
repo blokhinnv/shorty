@@ -46,7 +46,7 @@ func parseFlags(cfg *config.FlagConfig) {
 	flag.StringVar(&cfg.JSONConfigPath, "c", "", "path to json config (shorthand)")
 	flag.StringVar(&cfg.JSONConfigPath, "config", "", "path to json config")
 	flag.StringVar(&cfg.TrustedSubnet, "t", "", "CIDR")
-	flag.BoolVar(&cfg.StartGRPC, "g", true, "Wheither to start GRPC or HTTP server")
+	flag.BoolVar(&cfg.StartGRPC, "g", false, "Wheither to start GRPC or HTTP server")
 	flag.Parse()
 }
 
