@@ -146,7 +146,6 @@ func (srv *ShortyServer) GetShortURLJSON(
 		return nil, err
 	}
 	var response pb.GetShortURLJSONResponse
-	fmt.Println("req=", req)
 	shortURLID, shortenURL, err := shorten.GetShortURL(req.Item.Url, uint32(userID), srv.baseURL)
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, err.Error())
@@ -176,7 +175,6 @@ func (srv *ShortyServer) GetShortURLBatch(
 
 	urlIDs := make(map[string]string)
 	result := make([]*pb.GetShortURLBatchResponse_Item, 0, len(req.Batch))
-	fmt.Println("req=", req)
 	for _, item := range req.Batch {
 		shortURLID, shortenURL, err := shorten.GetShortURL(
 			item.OriginalUrl,
