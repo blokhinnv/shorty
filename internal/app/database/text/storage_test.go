@@ -177,6 +177,17 @@ func (suite *TextSuite) TestUpdate() {
 	s.Close(ctx)
 }
 
+func (suite *TextSuite) TestStats() {
+	ctx := context.Background()
+	s, _ := NewTextStorage(suite.textCfg)
+	s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	urls, users, err := s.GetStats(ctx)
+	suite.Equal(1, urls)
+	suite.Equal(1, users)
+	suite.NoError(err)
+	s.Close(ctx)
+}
+
 func TestTextSuite(t *testing.T) {
 	suite.Run(t, new(TextSuite))
 }
