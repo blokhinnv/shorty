@@ -487,3 +487,27 @@ func (s *TextStorage) Clear(ctx context.Context) error {
 	f.Close()
 	return nil
 }
+
+// Returns DB stats.
+func (s *TextStorage) GetStats(ctx context.Context) (int, int, error) {
+	file, err := os.OpenFile(s.filePath, os.O_RDONLY, 0777)
+	if err != nil {
+		return 0, 0, err
+	}
+	defer file.Close()
+
+	var rec storage.Record
+	decoder := json.NewDecoder(file)
+	var urls int
+	users := make(map[uint32]struct{})
+	for decoder.More() {
+		err = decoder.Decode(&rec)
+		if err != nil {
+			return 0, 0, err
+		}
+		urls += 1
+		users[rec.UserID] = struct{}{}
+	}
+
+	return urls, len(users), nil
+}

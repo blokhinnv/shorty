@@ -2,7 +2,7 @@ package routes
 
 import (
 	"github.com/blokhinnv/shorty/internal/app/server/config"
-	m "github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
+	m "github.com/blokhinnv/shorty/internal/app/server/http/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -24,13 +24,14 @@ func NewRouter(
 		r.Use(authentifier.Handler)
 		r.Use(m.RequestGZipDecompress)
 		r.Use(m.ResponseGZipCompess)
-		r.Post("/", GetShortURLHandlerFunc(storage))
-		r.Get("/{idURL}", GetOriginalURLHandlerFunc(storage))
+		r.Post("/", GetShortURLHandlerFunc(storage))          // + +
+		r.Get("/{idURL}", GetOriginalURLHandlerFunc(storage)) // + +
 		r.Route("/api", func(r chi.Router) {
-			r.Get("/user/urls", GetOriginalURLsHandlerFunc(storage))
+			r.Get("/user/urls", GetOriginalURLsHandlerFunc(storage)) // + +
 			r.Delete("/user/urls", NewDeleteURLsHandler(storage, 100, routerCloseCh).Handler)
-			r.Post("/shorten", GetShortURLAPIHandlerFunc(storage))
-			r.Post("/shorten/batch", NewGetShortURLsBatchHandler(storage).Handler)
+			r.Post("/shorten", GetShortURLAPIHandlerFunc(storage))                 // + +
+			r.Post("/shorten/batch", NewGetShortURLsBatchHandler(storage).Handler) // + +
+			r.Get("/internal/stats", NewGetStats(storage, cfg.TrustedSubnet).Handler)
 		})
 	})
 	r.Get("/ping", PingHandlerFunc(storage))

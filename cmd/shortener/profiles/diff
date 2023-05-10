@@ -20,12 +20,12 @@ Showing nodes accounting for 16.02kB, 0.36% of 4505kB total
          0     0%  0.36%  -528.17kB 11.72%  github.com/asaskevich/govalidator.ValidateStruct
          0     0%  0.36%  -528.17kB 11.72%  github.com/asaskevich/govalidator.typeCheck
          0     0%  0.36%  -528.17kB 11.72%  github.com/blokhinnv/shorty/internal/app/server/config.NewServerConfig
-         0     0%  0.36%   512.02kB 11.37%  github.com/blokhinnv/shorty/internal/app/server/routes.(*GetShortURLsBatchHandler).Handler
-         0     0%  0.36%  1056.69kB 23.46%  github.com/blokhinnv/shorty/internal/app/server/routes/middleware.(*Auth).Handler.func1
-         0     0%  0.36%   544.67kB 12.09%  github.com/blokhinnv/shorty/internal/app/server/routes/middleware.(*gzipWriter).writeResponse
-         0     0%  0.36%  1056.69kB 23.46%  github.com/blokhinnv/shorty/internal/app/server/routes/middleware.BaseURLCtx.func1.1
-         0     0%  0.36%  1056.69kB 23.46%  github.com/blokhinnv/shorty/internal/app/server/routes/middleware.RequestGZipDecompress.func1
-         0     0%  0.36%  1056.69kB 23.46%  github.com/blokhinnv/shorty/internal/app/server/routes/middleware.ResponseGZipCompess.func1
+         0     0%  0.36%   512.02kB 11.37%  github.com/blokhinnv/shorty/internal/app/server/http/routes.(*GetShortURLsBatchHandler).Handler
+         0     0%  0.36%  1056.69kB 23.46%  github.com/blokhinnv/shorty/internal/app/server/http/routes/middleware.(*Auth).Handler.func1
+         0     0%  0.36%   544.67kB 12.09%  github.com/blokhinnv/shorty/internal/app/server/http/routes/middleware.(*gzipWriter).writeResponse
+         0     0%  0.36%  1056.69kB 23.46%  github.com/blokhinnv/shorty/internal/app/server/http/routes/middleware.BaseURLCtx.func1.1
+         0     0%  0.36%  1056.69kB 23.46%  github.com/blokhinnv/shorty/internal/app/server/http/routes/middleware.RequestGZipDecompress.func1
+         0     0%  0.36%  1056.69kB 23.46%  github.com/blokhinnv/shorty/internal/app/server/http/routes/middleware.ResponseGZipCompess.func1
          0     0%  0.36%  1056.69kB 23.46%  github.com/go-chi/chi/v5.(*Mux).Mount.func1
          0     0%  0.36%  1056.69kB 23.46%  github.com/go-chi/chi/v5.(*Mux).ServeHTTP
          0     0%  0.36%  1056.69kB 23.46%  github.com/go-chi/chi/v5.(*Mux).routeHTTP

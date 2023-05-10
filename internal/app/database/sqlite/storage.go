@@ -249,3 +249,21 @@ func (s *SQLiteStorage) Clear(ctx context.Context) error {
 	_, err := s.db.ExecContext(ctx, clearSQL)
 	return err
 }
+
+// Returns DB stats.
+func (s *SQLiteStorage) GetStats(ctx context.Context) (int, int, error) {
+	var urls int
+	err := s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM Url").
+		Scan(&urls)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	var users int
+	err = s.db.QueryRowContext(ctx, "SELECT COUNT(DISTINCT user_id) FROM Url").
+		Scan(&users)
+	if err != nil {
+		return 0, 0, err
+	}
+	return urls, users, nil
+}

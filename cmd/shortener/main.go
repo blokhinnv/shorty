@@ -17,8 +17,9 @@ import (
 	"github.com/blokhinnv/shorty/internal/app/log"
 	"github.com/joho/godotenv"
 
-	s "github.com/blokhinnv/shorty/internal/app/server"
 	"github.com/blokhinnv/shorty/internal/app/server/config"
+	grpc "github.com/blokhinnv/shorty/internal/app/server/grpc"
+	"github.com/blokhinnv/shorty/internal/app/server/http"
 )
 
 // Глобальные переменные сборки
@@ -44,6 +45,8 @@ func parseFlags(cfg *config.FlagConfig) {
 
 	flag.StringVar(&cfg.JSONConfigPath, "c", "", "path to json config (shorthand)")
 	flag.StringVar(&cfg.JSONConfigPath, "config", "", "path to json config")
+	flag.StringVar(&cfg.TrustedSubnet, "t", "", "CIDR")
+	flag.BoolVar(&cfg.StartGRPC, "g", false, "Wheither to start GRPC or HTTP server")
 	flag.Parse()
 }
 
@@ -95,5 +98,9 @@ func main() {
 		syscall.SIGQUIT,
 	)
 	defer stop()
-	s.RunServer(shutdownCtx, serverCfg)
+	if flagCfg.StartGRPC {
+		grpc.RunGRPCServer(shutdownCtx, serverCfg)
+	} else {
+		http.RunHTTPServer(shutdownCtx, serverCfg)
+	}
 }

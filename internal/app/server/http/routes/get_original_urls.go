@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
+	"github.com/blokhinnv/shorty/internal/app/server/http/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 )
 

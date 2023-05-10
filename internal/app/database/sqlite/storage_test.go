@@ -164,6 +164,17 @@ func (suite *SQLiteSuite) TestClear() {
 	s.Close(ctx)
 }
 
+func (suite *SQLiteSuite) TestStats() {
+	ctx := context.Background()
+	s, _ := NewSQLiteStorage(suite.sqliteCfg)
+	s.AddURL(ctx, "http://yandex.ru", "qwerty", uint32(1))
+	urls, users, err := s.GetStats(ctx)
+	suite.Equal(1, urls)
+	suite.Equal(1, users)
+	suite.NoError(err)
+	s.Close(ctx)
+}
+
 func TestSQLiteSuite(t *testing.T) {
 	suite.Run(t, new(SQLiteSuite))
 }

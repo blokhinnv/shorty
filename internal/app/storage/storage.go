@@ -31,4 +31,6 @@ type Storage interface {
 	Clear(ctx context.Context) error
 	// Close closes the store.
 	Close(ctx context.Context)
+	// Returns DB stats.
+	GetStats(ctx context.Context) (int, int, error)
 }

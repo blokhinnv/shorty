@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/blokhinnv/shorty/internal/app/server/routes/middleware"
+	"github.com/blokhinnv/shorty/internal/app/server/http/routes/middleware"
 	"github.com/blokhinnv/shorty/internal/app/storage"
 	"github.com/golang/mock/gomock"
 )
